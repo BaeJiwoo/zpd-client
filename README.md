@@ -2,6 +2,26 @@
 
 Unity 6000.3.11f1 TCP 클라이언트와 FIFO 매칭 예제입니다.
 
+## API 구현 문서
+
+- [API 구현 명세 초안](Docs/API_IMPLEMENTATION.md): 로비·소셜·자동 하트·캐릭터·장비 라우트, 기존 TCP 매칭 연결, 사망 시 킬 수 기반 경험치 정산 및 미결정 정책.
+- [클라이언트 작업 목록](Docs/CLIENT_TASKS.md): 현재 코드 기준의 미구현 작업, 우선순위, 수정 위치와 완료 기준.
+
+HTTP API와 신규 전투/정산 이벤트는 제안 단계이며 아직 구현되지 않았습니다.
+
+## 로비
+
+`Assets/Scenes/Lobby.unity`를 열어 Play하거나, `ZPD > Lobby > Create Lobby Scene` 메뉴로
+로비 씬을 새로 생성할 수 있습니다. 중앙 캐릭터, 프로필·전적, 친구/검색/최근 접속 유저,
+하단 인벤토리, 전투 입장 및 캐릭터 변경 버튼을 제공합니다. 최근 접속 추천 목록에서는
+친구 요청을 보낼 수 있고 새로고침을 지원합니다. 친구 창에서 가능한 하트는 자동으로
+수령·전송하는 흐름이며, 현재는 API 로그만 출력합니다. 화면은 에디터에서
+생성·저장하며 API 연동 전 데이터는 모두 placeholder입니다. 작업 지점은 로그만 출력하고,
+서버 대상/가능 여부/소유 정보가 없는 동작은 비활성입니다. 영어 UI를 사용합니다.
+
+자세한 사용법은 [로비 가이드](Assets/Scripts/Lobby/README.md),
+외부 리소스와 직접 제작한 UI 원화의 출처는 [크레딧](Assets/ThirdParty/CREDITS.md)을 확인하세요.
+
 ## 실행
 
 1. 업데이트된 `../zpd-server/out/build/windows-x64/Debug/zpd-server.exe`를 실행합니다. 이전 서버가 실행 중이면 종료 후 새로 실행합니다.
@@ -67,3 +87,20 @@ dotnet run --project Tools/Verification -- ../zpd-server/out/build/windows-x64/D
 실제 서버에 여러 클라이언트를 연결해 FIFO 매칭, 세션 분리, 취소, 퇴장, 재매칭, 연결 종료 정리, 잘못된 요청을 검증합니다. 기존 에코/프레이밍 테스트도 유지합니다. Unity 참조 기반 컴파일을 확인했으며, Unity Play 화면을 직접 조작한 검증은 별도입니다.
 
 프로토콜을 바꾼 뒤에는 `Tools/Generate-Protocol.ps1`로 C# 메시지를 갱신합니다.
+
+## 솔로 디펜스
+
+`Assets/Scenes/SoloDefense.unity`를 열고 Play → START DEFENSE.
+WASD/방향키 이동, 마우스 조준·왼쪽 버튼 사격, Space 대시, Esc 일시정지.
+웨이브 종료마다 1/2/3으로 무료 카드 1장을 골라 발사체 수·피해·발사 속도를 누적 강화합니다.
+선택 전에는 준비 시간이 멈추고, 선택 후 8초간 준비 시간이 흐릅니다.
+4 체력 회복, 5 비콘 수리, Enter 다음 웨이브, M 효과음 음소거.
+추격병·비콘 공격병을 저지하고, 사격병의 조준선을 읽어 분홍색 투사체를 피합니다.
+적은 웨이브에 따라 강화되며 사격·명중·처치·대시에 시각 피드백을 제공합니다.
+`ZPD → Defense → Create Solo Defense Scene` 메뉴로 씬 전체를 에디터에서 생성할 수 있습니다.
+
+게임 모드는 `dedicated_battle`과 `solo_defense`이며 공통 싱글톤이 플레이 정보를 추적합니다.
+현재 새로 구현한 플레이는 솔로 디펜스입니다. 종료 시 게임 로그 저장과 보상을 실제 API로 요청하고,
+서버가 없는 상태에서는 각각 실패 화면을 표시합니다. 상세 실행법과 데이터 계약은
+[Defense README](Assets/Scripts/Defense/README.md), [API 명세](Docs/API_IMPLEMENTATION.md),
+[남은 클라이언트 작업](Docs/CLIENT_TASKS.md)을 참고하세요.
