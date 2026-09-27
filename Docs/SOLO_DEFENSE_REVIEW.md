@@ -25,8 +25,8 @@
 
 근거 위치:
 
-- `Assets/Scripts/Defense/DefenseGame.cs`: `Simulate`, `SpawnWave`, `MoveBullets`, `UpdateHud`.
-- `Assets/Scripts/Defense/DefenseSupplies.cs`: 무기 속성, `EnemyKilled`, `Tick`, `BuyWeapon`, `BuyHeal`.
+- `Assets/Scripts/Defense/Controllers/DefenseGame.cs`: `Simulate`, `SpawnWave`, `MoveBullets`, `UpdateHud`.
+- `Assets/Scripts/Defense/Controllers/DefenseSupplies.cs`: 무기 속성, `EnemyKilled`, `Tick`, `BuyWeapon`, `BuyHeal`.
 - `Assets/Scripts/Defense/Editor/DefenseSceneBuilder.cs`: 적 풀 생성, `BuildUi`, `BuildShop`.
 - `Assets/Scenes/SoloDefense.unity`: 아레나 반크기 11.3×5, 이동속도 5, 탄속 19, 강화주기 45초, 보급·가격 설정이 코드 기본값과 일치한다.
 

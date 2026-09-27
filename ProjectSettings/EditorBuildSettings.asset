@@ -6,6 +6,18 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/Login.unity
+    guid: c1be475d888654c46b6fbcefda9642ea
+  - enabled: 1
+    path: Assets/Scenes/Lobby.unity
+    guid: 17bc248154179624a9517074db60fec9
+  - enabled: 0
+    path: Assets/Scenes/LegacyLobby.unity
+    guid: e59672ab8dfdfbf4ea1afae62d7e0628
+  - enabled: 1
+    path: Assets/Scenes/SoloDefense.unity
+    guid: 6ab1d350c3c60ee47964a467be7cc103
+  - enabled: 1
     path: Assets/Scenes/ConnectionTest.unity
     guid: 2d543e3bf8bb4ba5bc0a547a86837ead
   m_configObjects:

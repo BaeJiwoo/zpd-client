@@ -2,6 +2,11 @@
 
 Unity 6000.3.11f1 TCP 클라이언트와 FIFO 매칭 예제입니다.
 
+로비·솔로 디펜스는 Model(상태·규칙), View(화면), Controller(입력·진행)로 분리되어 있습니다.
+[MVC 구조와 씬 이동](Docs/MVC_ARCHITECTURE.md)을 참고하세요.
+빌드는 로그인 화면에서 시작하며, 로그인 후 로비의 **SOLO DEFENSE >** → **전투 시작**으로 플레이합니다.
+디펜스의 준비·일시정지·결과 화면에서 **로비로 돌아가기**를 사용할 수 있습니다.
+
 ## API 구현 문서
 
 - [API 구현 명세 초안](Docs/API_IMPLEMENTATION.md): 로비·소셜·자동 하트·캐릭터·장비 라우트, 기존 TCP 매칭 연결, 사망 시 킬 수 기반 경험치 정산 및 미결정 정책.
@@ -11,13 +16,10 @@ HTTP API와 신규 전투/정산 이벤트는 제안 단계이며 아직 구현�
 
 ## 로비
 
-`Assets/Scenes/Lobby.unity`를 열어 Play하거나, `ZPD > Lobby > Create Lobby Scene` 메뉴로
-로비 씬을 새로 생성할 수 있습니다. 중앙 캐릭터, 프로필·전적, 친구/검색/최근 접속 유저,
-하단 인벤토리, 전투 입장 및 캐릭터 변경 버튼을 제공합니다. 최근 접속 추천 목록에서는
-친구 요청을 보낼 수 있고 새로고침을 지원합니다. 친구 창에서 가능한 하트는 자동으로
-수령·전송하는 흐름이며, 현재는 API 로그만 출력합니다. 화면은 에디터에서
-생성·저장하며 API 연동 전 데이터는 모두 placeholder입니다. 작업 지점은 로그만 출력하고,
-서버 대상/가능 여부/소유 정보가 없는 동작은 비활성입니다. 영어 UI를 사용합니다.
+`Assets/Scenes/Lobby.unity`가 기본 로비입니다. 프로필·인벤토리·친구 메뉴와 솔로 디펜스 진입을 제공합니다.
+로그인부터 확인하려면 `Assets/Scenes/Login.unity`를 열고 Play하세요. API 인증 설정은 [로그인 계약](Docs/LOGIN.md)을 참고하세요.
+`ZPD > Lobby > Create Lobby Scene`으로 로비를 새로 생성할 수 있습니다.
+`LegacyLobby.unity`는 생성 원본으로 보관하며 빌드에는 포함하지 않습니다.
 
 자세한 사용법은 [로비 가이드](Assets/Scripts/Lobby/README.md),
 외부 리소스와 직접 제작한 UI 원화의 출처는 [크레딧](Assets/ThirdParty/CREDITS.md)을 확인하세요.
@@ -45,8 +47,10 @@ HTTP API와 신규 전투/정산 이벤트는 제안 단계이며 아직 구현�
 
 ## 코드 구조
 
-- `Assets/Scripts/Networking/NetworkClient.cs`: 비동기 TCP 송수신, 연결별 요청 ID, 이벤트 큐.
-- `Assets/Scripts/Networking/MatchmakingClient.cs`: 매칭 요청/응답, 세션 상태, 참가자 목록.
+HTTP/authentication structure: [Networking architecture](Docs/NETWORKING.md).
+
+- `Assets/Scripts/Networking/Tcp/NetworkClient.cs`: 비동기 TCP 송수신, 연결별 요청 ID, 이벤트 큐.
+- `Assets/Scripts/Networking/Tcp/MatchmakingClient.cs`: 매칭 요청/응답, 세션 상태, 참가자 목록.
 - `Assets/Scripts/Development/PacketHandler.cs`: HandleConnected, HandlePacketReceived, HandleDisconnected.
 - `Assets/Scripts/Development/ConnectionTest.cs`: 큰 글씨의 테스트 UI와 메인 스레드 이벤트 처리.
 - 서버 `PacketHandler.cpp`: 연결 및 메시지 분기. 매칭 처리는 `PacketHandler.Matchmaking.cpp`로 분리합니다.

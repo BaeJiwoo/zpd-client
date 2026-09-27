@@ -2,214 +2,215 @@ using System;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
-using UnityEditor.U2D.Sprites;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Zpd.Lobby.Editor
 {
-    /// <summary>Imports the drawn UI kit and applies it to authored scene objects in the editor.</summary>
+    /// <summary>Uses the original lobby's illustrated atlas, palette and button states.</summary>
     public static class LobbyCartoonStyle
     {
-        public const string AtlasPath = "Assets/Resources/UI/Lobby/cartoon-ui-atlas.png";
-        private static readonly string[] Names = { "Panel", "Card", "Button", "Battle", "Backpack", "Friends" };
-        private static readonly Color Ink = ColorOf("24192F");
-        private static readonly Color Cream = ColorOf("FFF2D8");
-        private static Sprite[] sprites;
+        private static readonly Color Ink = C("24192F"), Cream = C("FFF2D8"), Muted = C("665274");
 
         [MenuItem("ZPD/Lobby/Apply Cartoon Style to Open Lobby")]
-        public static void ApplyToOpenScene()
+        public static void ApplyOpen()
         {
-            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                return;
+            }
+
             var lobby = UnityEngine.Object.FindFirstObjectByType<LobbyController>();
-            if (lobby == null) throw new InvalidOperationException("Open a lobby scene first.");
-            // A full hierarchy snapshot keeps repeated styling reversible in the editor.
-            Undo.IncrementCurrentGroup();
-            int undoGroup = Undo.GetCurrentGroup();
-            Undo.RegisterFullObjectHierarchyUndo(lobby.GetComponentInParent<Canvas>().gameObject, "Apply lobby cartoon art");
+
+            if (lobby == null)
+            {
+                throw new InvalidOperationException("Open Lobby first.");
+            }
+
+            Undo.RegisterFullObjectHierarchyUndo(lobby.gameObject, "Apply original lobby style");
             Apply(lobby);
-            Undo.CollapseUndoOperations(undoGroup);
             EditorSceneManager.MarkSceneDirty(lobby.gameObject.scene);
-            Debug.Log("[Lobby] Cartoon UI applied. Save the scene to keep the changes.");
         }
 
         public static void Apply(LobbyController lobby)
         {
-            ImportAtlas();
-            var canvas = lobby.GetComponentInParent<Canvas>();
-            foreach (var image in canvas.GetComponentsInChildren<Image>(true))
+            var sprites = AssetDatabase.LoadAllAssetsAtPath(LegacyLobbyCartoonStyle.AtlasPath).OfType<Sprite>().ToArray();
+
+            if (sprites.Length < 6)
+            {
+                throw new InvalidOperationException("Original lobby UI atlas is missing.");
+            }
+
+            foreach (var image in lobby.GetComponentsInChildren<Image>(true))
             {
                 string name = image.name;
+
+                if (name == "Dismiss" || name == "Section Dismiss" || name == "Icon" || name == "Drawn Icon")
+                {
+                    continue;
+                }
+
                 var button = image.GetComponent<Button>();
-                if (name == "Modal Backdrop") continue;
+
                 if (button != null)
                 {
-                    bool card = name.StartsWith("Item ") || name.StartsWith("Character Option ");
-                    Skin(image, name == "Enter Battle" ? "Battle" : card ? "Card" : "Button", name == "Close" ? 3.5f : card ? 3 : 2.2f);
+                    Skin(
+                        image,
+                        sprites,
+                        name == "Solo Defense" || name == "Use Item"
+                        ? "Battle"
+                        : name == "Item Template" ? "Card" : "Button",
+                        name == "Close" ? 3.5f : name == "Item Template" ? 3 : 2.2f);
                     var colors = button.colors;
                     colors.normalColor = Color.white;
-                    colors.highlightedColor = new Color(1, 1, 0.82f);
-                    colors.selectedColor = new Color(1, 1, 0.82f);
-                    colors.pressedColor = new Color(0.77f, 0.69f, 0.9f);
-                    colors.disabledColor = new Color(0.70f, 0.60f, 0.83f);
+                    colors.highlightedColor = colors.selectedColor = new Color(1, 1, .82f);
+                    colors.pressedColor = new Color(.77f, .69f, .9f);
+                    colors.disabledColor = new Color(.70f, .60f, .83f);
                     button.colors = colors;
                 }
-                else if (image.GetComponent<LobbyPanel>() != null) Skin(image, "Panel", 1.8f);
-                else if (name == "Character Backplate" || name == "Current Loadout" || name == "Equipped Weapon" || name == "Player Search" || name.StartsWith("Player "))
-                    Skin(image, "Card", name.StartsWith("Player ") ? 3.0f : 2.2f);
-                else if (name == "Background") image.color = ColorOf("251D35");
-                else if (name == "Header Rule") image.color = ColorOf("715090");
-                else if (name == "Character Accent") image.color = Color.clear;
-                else if (name == "Viewport") image.color = new Color(0.25f, 0.12f, 0.38f, 0.08f);
+                else if (name == "Inventory" || name == "Details")
+                {
+                    Skin(image, sprites, "Panel", 1.8f);
+                }
+                else if (name == "Player Profile")
+                {
+                    Skin(image, sprites, "Card", 2.2f);
+                }
+                else if (name == "Background")
+                {
+                    image.color = C("251D35");
+                }
+                else if (name == "Rule")
+                {
+                    image.color = C("715090");
+                }
+                else if (name == "Inventory Viewport")
+                {
+                    image.color = new Color(.25f, .12f, .38f, .08f);
+                }
+                else if (name == "History Viewport")
+                {
+                    image.color = Color.clear;
+                }
+                else if (name == "Owned Amount")
+                {
+                    image.color = C("CDBDDB");
+                }
+                else if (name == "Fill")
+                {
+                    image.color = C("8951C9");
+                }
             }
-            foreach (var text in canvas.GetComponentsInChildren<Text>(true))
+
+            foreach (var text in lobby.GetComponentsInChildren<Text>(true))
             {
                 text.color = Ink;
-                if (text.fontSize >= 19) text.fontStyle = FontStyle.Bold;
-                if (text.name == "Presence" || text.name == "Data Notice" || text.name == "Preview Notice" || text.name == "Item Details" || text.name == "Subtitle")
-                    text.color = ColorOf("665274");
+
+                if (text.fontSize >= 19)
+                {
+                    text.fontStyle = FontStyle.Bold;
+                }
+
+                if (text.name == "History" || text.name == "History Title" || text.name == "Inventory Status" || text.name == "Hint" || text.name == "Category" || text.name == "Description" || text.name == "Empty State")
+                {
+                    text.color = Muted;
+                }
             }
-            foreach (string name in new[] { "Brand", "Mode", "Heading", "Intro", "Character Tag", "Character Name", "Status", "Art Credit" })
+
+            foreach (var name in new[]
             {
-                var text = lobby.transform.Find(name)?.GetComponent<Text>();
-                if (text == null) continue;
+                "Brand",
+                "Version",
+                "Deploy",
+                "Hub",
+                "Status",
+                "Art Credit",
+                "Character Tag",
+                "Character Name"
+            }
+
+            )
+            {
+                var text = lobby.home.transform.Find(name)?.GetComponent<Text>();
+
+                if (text == null)
+                {
+                    continue;
+                }
+
                 text.color = Cream;
-                if (name == "Heading" || name == "Brand" || name == "Character Name")
+
+                if (name == "Brand")
                 {
                     var outline = text.GetComponent<Outline>() ?? text.gameObject.AddComponent<Outline>();
                     outline.effectColor = Color.black;
                     outline.effectDistance = new Vector2(2, -2);
                 }
             }
-            lobby.transform.Find("Art Credit").GetComponent<Text>().text = "Art: Rgsdev (CC0)  |  UI: OpenAI / Codex";
-            lobby.transform.Find("Art Credit").GetComponent<Text>().fontSize = 11;
-            AddButtonIcon(lobby.transform.Find("Friends"), "Friends");
-            AddButtonIcon(lobby.transform.Find("Inventory"), "Backpack");
-            var profileLabel = lobby.transform.Find("Profile/Label").GetComponent<Text>();
-            profileLabel.fontSize = 17;
-            profileLabel.rectTransform.sizeDelta = new Vector2(336, 44);
-            profileLabel.rectTransform.anchoredPosition = new Vector2(0, 3);
-            foreach (var text in lobby.friends.GetComponentsInChildren<Text>(true))
+
+            var inventory = lobby.inventoryPanel.transform;
+            AddIcon(inventory, sprites, "Backpack", new Vector2(-332, 218), new Vector2(40, 40));
+            var heading = inventory.Find("Inventory Title").GetComponent<RectTransform>();
+            heading.anchoredPosition = new Vector2(-148, 218);
+            heading.sizeDelta = new Vector2(316, 36);
+            var friends = lobby.home.transform.Find("Friends");
+            AddIcon(friends, sprites, "Friends", new Vector2(-112, 2), new Vector2(40, 40));
+            var friendLabel = friends.Find("Label").GetComponent<Text>();
+            friendLabel.rectTransform.anchoredPosition = new Vector2(22, 2);
+            friendLabel.rectTransform.sizeDelta = new Vector2(230, 44);
+            friendLabel.fontSize = 20;
+            var inventoryButton = lobby.home.transform.Find("Inventory Button");
+            AddIcon(inventoryButton, sprites, "Backpack", new Vector2(-112, 2), new Vector2(40, 40));
+            var inventoryLabel = inventoryButton.Find("Label").GetComponent<Text>();
+            inventoryLabel.rectTransform.anchoredPosition = new Vector2(22, 2);
+            inventoryLabel.rectTransform.sizeDelta = new Vector2(230, 44);
+
+            if (lobby.home.transform.Find("Comic Backdrop") == null)
             {
-                if (text.name == "Name") text.rectTransform.anchoredPosition = new Vector2(-32, 10);
-                if (text.name == "Presence")
+                var source = lobby.social.transform.Find("Comic Backdrop");
+
+                if (source != null)
                 {
-                    text.rectTransform.anchoredPosition = new Vector2(-32, -12);
-                    text.fontSize = 13;
+                    var backdrop = UnityEngine.Object.Instantiate(source.gameObject, lobby.home.transform, false);
+                    backdrop.name = "Comic Backdrop";
+                    backdrop.SetActive(true);
+                    backdrop.transform.SetAsFirstSibling();
                 }
-                if (text.name == "Preview Notice") text.rectTransform.anchoredPosition = new Vector2(0, -300);
             }
-            foreach (var item in lobby.inventory.GetComponentsInChildren<Button>(true).Where(b => b.name.StartsWith("Item ")))
-            {
-                var icon = (RectTransform)item.transform.Find("Icon");
-                icon.sizeDelta = new Vector2(148, 60);
-                icon.anchoredPosition = new Vector2(0, 15);
-                ((RectTransform)item.transform.Find("Name")).anchoredPosition = new Vector2(0, -31);
-            }
-            AddBackdrop(lobby.transform);
+
             Canvas.ForceUpdateCanvases();
         }
 
-        private static void Skin(Image image, string name, float pixelsPerUnit)
+        private static void AddIcon(Transform parent, Sprite[] sprites, string name, Vector2 position, Vector2 size)
+        {
+            var image = parent.Find("Drawn Icon")?.GetComponent<Image>();
+
+            if (image == null)
+            {
+                image = new GameObject("Drawn Icon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                image.transform.SetParent(parent, false);
+            }
+
+            image.sprite = sprites.Single(s => s.name == name);
+            image.color = Color.white;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            image.rectTransform.sizeDelta = size;
+            image.rectTransform.anchoredPosition = position;
+        }
+
+        private static void Skin(Image image, Sprite[] sprites, string name, float density)
         {
             image.sprite = sprites.Single(s => s.name == name);
             image.type = Image.Type.Sliced;
-            image.pixelsPerUnitMultiplier = pixelsPerUnit;
+            image.pixelsPerUnitMultiplier = density;
             image.color = Color.white;
         }
 
-        private static void AddButtonIcon(Transform button, string name)
+        private static Color C(string hex)
         {
-            var icon = button.Find("Drawn Icon")?.GetComponent<Image>();
-            if (icon == null)
-            {
-                var go = new GameObject("Drawn Icon", typeof(RectTransform), typeof(Image));
-                go.transform.SetParent(button, false);
-                Undo.RegisterCreatedObjectUndo(go, "Add drawn UI icon");
-                icon = go.GetComponent<Image>();
-            }
-            icon.sprite = sprites.Single(s => s.name == name);
-            icon.preserveAspect = true;
-            icon.raycastTarget = false;
-            icon.rectTransform.sizeDelta = new Vector2(46, 46);
-            icon.rectTransform.anchorMin = icon.rectTransform.anchorMax = new Vector2(0, 0.5f);
-            icon.rectTransform.anchoredPosition = new Vector2(43, 2);
-            var label = button.Find("Label").GetComponent<RectTransform>();
-            label.sizeDelta = new Vector2(((RectTransform)button).sizeDelta.x - 100, label.sizeDelta.y);
-            label.anchoredPosition = new Vector2(29, 2);
-            label.GetComponent<Text>().fontSize = 17;
+            ColorUtility.TryParseHtmlString("#" + hex, out var color);
+            return color;
         }
-
-        private static void AddBackdrop(Transform parent)
-        {
-            if (parent.Find("Comic Backdrop") != null) return;
-            var backdrop = new GameObject("Comic Backdrop", typeof(RectTransform)).GetComponent<RectTransform>();
-            backdrop.SetParent(parent, false);
-            backdrop.SetAsFirstSibling();
-            backdrop.sizeDelta = new Vector2(1280, 720);
-            // Simple authored graphic shapes support the illustrated UI; no runtime drawing.
-            for (int i = 0; i < 5; i++)
-            {
-                var stripe = new GameObject("Ink Streak " + i, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-                stripe.transform.SetParent(backdrop, false);
-                stripe.rectTransform.sizeDelta = new Vector2(72 + 12 * i, 490);
-                stripe.rectTransform.anchoredPosition = new Vector2(-160 + i * 105, 0);
-                stripe.rectTransform.localRotation = Quaternion.Euler(0, 0, -20);
-                stripe.color = new Color(0.42f, 0.28f, 0.64f, 0.10f);
-                stripe.raycastTarget = false;
-            }
-            Undo.RegisterCreatedObjectUndo(backdrop.gameObject, "Add comic backdrop");
-        }
-
-        private static void ImportAtlas()
-        {
-            AssetDatabase.ImportAsset(AtlasPath);
-            var importer = AssetImporter.GetAtPath(AtlasPath) as TextureImporter;
-            if (importer == null) throw new InvalidOperationException("Missing illustrated UI atlas: " + AtlasPath);
-            sprites = AssetDatabase.LoadAllAssetsAtPath(AtlasPath).OfType<Sprite>().ToArray();
-            if (sprites.Length == Names.Length && Names.All(n => sprites.Any(s => s.name == n))) return;
-            importer.textureType = TextureImporterType.Sprite;
-            importer.spriteImportMode = SpriteImportMode.Multiple;
-            importer.isReadable = true;
-            importer.alphaIsTransparency = true;
-            importer.mipmapEnabled = false;
-            importer.textureCompression = TextureImporterCompression.Uncompressed;
-            importer.maxTextureSize = 2048;
-            importer.filterMode = FilterMode.Bilinear;
-            importer.SaveAndReimport();
-            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(AtlasPath);
-            var pixels = texture.GetPixels32();
-            var rects = new SpriteRect[6];
-            int cellW = texture.width / 3, cellH = texture.height / 2;
-            for (int i = 0; i < 6; i++)
-            {
-                int left = (i % 3) * cellW, bottom = (1 - i / 3) * cellH;
-                int minX = left + cellW, minY = bottom + cellH, maxX = left, maxY = bottom;
-                for (int y = bottom; y < bottom + cellH; y++)
-                for (int x = left; x < left + cellW; x++)
-                    if (pixels[y * texture.width + x].a > 200)
-                    { minX = Mathf.Min(minX, x); minY = Mathf.Min(minY, y); maxX = Mathf.Max(maxX, x); maxY = Mathf.Max(maxY, y); }
-                if (minX > maxX || minY > maxY) throw new InvalidOperationException("Empty UI sprite cell: " + Names[i]);
-                minX = Mathf.Max(left, minX - 2); minY = Mathf.Max(bottom, minY - 2);
-                maxX = Mathf.Min(left + cellW - 1, maxX + 2); maxY = Mathf.Min(bottom + cellH - 1, maxY + 2);
-                rects[i] = new SpriteRect {
-                    name = Names[i], spriteID = GUID.Generate(), alignment = SpriteAlignment.Center,
-                    pivot = new Vector2(0.5f, 0.5f), rect = new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1),
-                    border = i < 4 ? new Vector4(64, 64, 64, 64) : Vector4.zero
-                };
-            }
-            var factory = new SpriteDataProviderFactories();
-            factory.Init();
-            var provider = factory.GetSpriteEditorDataProviderFromObject(importer);
-            provider.InitSpriteEditorDataProvider();
-            provider.SetSpriteRects(rects);
-            provider.GetDataProvider<ISpriteNameFileIdDataProvider>().SetNameFileIdPairs(rects.Select(r => new SpriteNameFileIdPair(r.name, r.spriteID)));
-            provider.Apply();
-            importer.isReadable = false;
-            importer.SaveAndReimport();
-            sprites = AssetDatabase.LoadAllAssetsAtPath(AtlasPath).OfType<Sprite>().ToArray();
-        }
-
-        private static Color ColorOf(string hex) { ColorUtility.TryParseHtmlString("#" + hex, out var value); return value; }
     }
 }

@@ -1,6 +1,9 @@
 # 솔로 디펜스 프로토타입
 
 `Assets/Scenes/SoloDefense.unity`를 열고 Play → 전투 시작으로 시작한다.
+또는 로비의 **SOLO DEFENSE >** 버튼으로 진입한다. 준비·일시정지·결과 화면의
+**로비로 돌아가기** 버튼으로 복귀한다. 진행 중 복귀하면 `returned_to_lobby`로 기록을
+확정·로컬 저장한다. 상세 구조는 [MVC 문서](../../../Docs/MVC_ARCHITECTURE.md)를 참고한다.
 재생성 메뉴는 **ZPD → Defense → Create Solo Defense Scene**이다.
 기존 씬을 덮어쓰지 않고 고유 이름으로 저장한다. 카메라, 아레나, 캐릭터,
 적 48개, 플레이어 탄환 128개, 적 투사체 48개, 골드 더미 96개, 피드백 스프라이트 96개, 진입 예고 2개,
@@ -109,7 +112,8 @@
 저장된 `SoloDefense.unity`에도 변경 사항이 반영되어 있다.
 
 `Tools/DefenseValidation/Run.ps1`은 프로젝트를 `Temp/SoloDefenseValidation`에 복사하고
-설치된 패키지를 재사용해 별도 Unity 배치 프로세스로 실행한다. `validation-result.txt`와
+설치된 패키지를 재사용해 별도 Unity 배치 프로세스로 실행한다. 저장된 씬을 자동 업그레이드하지
+않고 그대로 검증한다. `validation-result.txt`와
 `validation.log`에서 결과를 확인한다. 원본 에디터 세션은 조작하지 않는다.
 실제 씬의 Play 모드에서 카드 중복 방지·누적·상한·초기화, 선택 시간 보장, 적의 조준 고정,
 투사체 충돌·대시 회피·풀 고갈 및 재사용, 보급·수리, 일시정지와 카메라 복원을 검증한다.
@@ -143,8 +147,8 @@
 
 ## 실제 API 요청과 실패 UI
 
-씬의 `Solo Defense` 오브젝트 → `DefenseRewardClient.apiBaseUrl`을 설정한다.
-기본값은 서비스가 없는 `https://127.0.0.1:18080`이다. 현재 인증 토큰은 붙이지 않는다.
+로그인 씬의 `LoginController.apiRoot`를 설정한다. 결과·보상 요청은 공통 로그인 세션의 주소와 Bearer 토큰을 사용한다.
+기본값은 서비스가 없는 `https://127.0.0.1:18080/api/v1`이다. 로그인한 계정이 전투 시작 계정과 다르거나 인증이 만료되면 요청하지 않는다. 인증 계약은 `Docs/LOGIN.md`를 참고한다.
 5초 타임아웃의 실제 HTTP 요청을 보내므로 서버가 없으면 실패 화면이 표시된다.
 임의 성공이나 로컬 경험치 지급은 하지 않는다.
 

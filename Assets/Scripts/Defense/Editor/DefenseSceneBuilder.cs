@@ -25,16 +25,34 @@ namespace Zpd.Defense.Editor
         [MenuItem("ZPD/Defense/Create Solo Defense Scene")]
         public static void CreateScene()
         {
-            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                return;
+            }
+
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
             ui = AssetDatabase.LoadAllAssetsAtPath("Assets/Resources/UI/Lobby/cartoon-ui-atlas.png").OfType<Sprite>().ToArray();
-            if (!ui.Any(s => s.name == "Panel")) throw new InvalidOperationException("Import the lobby UI atlas before building Defense.");
+
+            if (!ui.Any(s => s.name == "Panel"))
+            {
+                throw new InvalidOperationException("Import the lobby UI atlas before building Defense.");
+            }
+
             Load("Full body animated characters/Char 1/with hands/idle_0.png");
             PrepareAssets();
-            const string fontPath = "Assets/Resources/Fonts/NotoSansKR/NotoSansKR-Regular.otf";
+            const string fontPath = "Assets/Resources/Fonts/NexonLv1/NEXONLv1GothicRegular.ttf";
             AssetDatabase.ImportAsset(fontPath, ImportAssetOptions.ForceSynchronousImport);
             font = AssetDatabase.LoadAssetAtPath<Font>(fontPath);
-            if (font == null) throw new InvalidOperationException("Import the bundled Noto Sans KR font first.");
+
+            if (font == null)
+            {
+                throw new InvalidOperationException("Import the bundled NEXON Lv.1 Gothic font first.");
+            }
+
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var root = new GameObject("Solo Defense");
             new GameObject("Game Session Tracker", typeof(GameSessionTracker));
@@ -46,10 +64,20 @@ namespace Zpd.Defense.Editor
             game.audioEffects = root.AddComponent<DefenseAudio>();
             game.audioEffects.combat = new GameObject("Combat Audio", typeof(AudioSource)).GetComponent<AudioSource>();
             game.audioEffects.feedback = new GameObject("Feedback Audio", typeof(AudioSource)).GetComponent<AudioSource>();
-            foreach (var source in new[] { game.audioEffects.combat, game.audioEffects.feedback })
+
+            foreach (var source in new[]
             {
-                source.transform.SetParent(root.transform, false); source.playOnAwake = false; source.spatialBlend = 0;
+                game.audioEffects.combat,
+                game.audioEffects.feedback
             }
+
+            )
+            {
+                source.transform.SetParent(root.transform, false);
+                source.playOnAwake = false;
+                source.spatialBlend = 0;
+            }
+
             game.audioEffects.clips = DefenseSoundBuilder.CreateClips();
             var camera = new GameObject("Arena Camera", typeof(Camera)).GetComponent<Camera>();
             camera.tag = "MainCamera";
@@ -72,15 +100,24 @@ namespace Zpd.Defense.Editor
             meadowImporter.textureCompression = TextureImporterCompression.Uncompressed;
             meadowImporter.maxTextureSize = 2048;
             meadowImporter.SaveAndReimport();
-            var meadow = WorldSprite("Last Signal Meadow - Evacuation Trail", arena,
-                AssetDatabase.LoadAssetAtPath<Sprite>(meadowPath), 14.6f, -20);
+            var meadow = WorldSprite(
+                "Last Signal Meadow - Evacuation Trail",
+                arena,
+                AssetDatabase.LoadAssetAtPath<Sprite>(meadowPath),
+                14.6f,
+                -20);
             game.beacon = new GameObject("Defense Beacon").transform;
             game.beacon.SetParent(root.transform);
             BuildBeaconVisual(game);
             game.player = new GameObject("Player").transform;
             game.player.SetParent(root.transform);
             game.player.position = new Vector2(0, -2.2f);
-            game.playerArt = Composite("Character Art", game.player, "Full body animated characters/Char 1/with hands/idle_0.png", 1.25f, 10);
+            game.playerArt = Composite(
+                "Character Art",
+                game.player,
+                "Full body animated characters/Char 1/with hands/idle_0.png",
+                1.25f,
+                10);
             game.weapon = new GameObject("Aim Pivot").transform;
             game.weapon.SetParent(game.player, false);
             var gun = WorldSprite("Weapon", game.weapon, Load("Weapons/weaponR1.png")[0], 0.38f, 15);
@@ -92,27 +129,48 @@ namespace Zpd.Defense.Editor
             var enemyPool = new GameObject("Enemy Pool - 48 authored slots").transform;
             enemyPool.SetParent(root.transform);
             game.enemies = new DefenseGame.EnemySlot[48];
-            string[] enemies = { "Enemy 1", "Enemy 2", "Enemy 4" };
+            string[] enemies =
+            {
+                "Enemy 1",
+                "Enemy 2",
+                "Enemy 4"
+            };
+
             for (int i = 0; i < game.enemies.Length; i++)
             {
-                var actor = Composite("Enemy " + i.ToString("00"), enemyPool, "Full body animated characters/Enemies/" + enemies[i % 3] + "/idle_0.png", 1.05f, 9);
+                var actor = Composite(
+                    "Enemy " + i.ToString("00"),
+                    enemyPool,
+                    "Full body animated characters/Enemies/" + enemies[i % 3] + "/idle_0.png",
+                    1.05f,
+                    9);
                 actor.gameObject.SetActive(false);
-                game.enemies[i] = new DefenseGame.EnemySlot { root = actor };
+                game.enemies[i] = new DefenseGame.EnemySlot
+                {
+                    root = actor
+                };
             }
+
             var bulletPool = new GameObject("Projectile Pool - 128 authored slots").transform;
             bulletPool.SetParent(root.transform);
             game.bullets = new DefenseGame.BulletSlot[128];
             var bulletSprite = Load("Extras/bullet.png")[0];
+
             for (int i = 0; i < game.bullets.Length; i++)
             {
                 var bullet = WorldSprite("Bullet " + i.ToString("00"), bulletPool, bulletSprite, 0.14f, 20);
                 bullet.color = Hex("FFD077");
                 bullet.gameObject.SetActive(false);
-                game.bullets[i] = new DefenseGame.BulletSlot { root = bullet.transform };
+                game.bullets[i] = new DefenseGame.BulletSlot
+                {
+                    root = bullet.transform
+                };
             }
+
             var goldPool = new GameObject("Gold Pool - 96 authored piles").transform;
             goldPool.SetParent(root.transform, false);
             game.supplies.drops = new DefenseSupplies.GoldSlot[96];
+
             for (int i = 0; i < game.supplies.drops.Length; i++)
             {
                 var coin = new GameObject("Gold " + i.ToString("00")).transform;
@@ -120,18 +178,30 @@ namespace Zpd.Defense.Editor
                 Block("Outline", coin, Vector2.zero, new Vector2(0.34f, 0.34f), Color.black, 3).transform.localRotation = Quaternion.Euler(0, 0, 45);
                 Block("Gold", coin, Vector2.zero, new Vector2(0.25f, 0.25f), Hex("FFC64B"), 4).transform.localRotation = Quaternion.Euler(0, 0, 45);
                 Block("Glint", coin, new Vector2(-0.04f, 0.04f), new Vector2(0.06f, 0.15f), Hex("FFF3AF"), 5);
-                game.supplies.drops[i] = new DefenseSupplies.GoldSlot { root = coin };
+                game.supplies.drops[i] = new DefenseSupplies.GoldSlot
+                {
+                    root = coin
+                };
                 coin.gameObject.SetActive(false);
             }
+
             var feedbackPool = new GameObject("Feedback Pool - 96 authored sparks").transform;
             feedbackPool.SetParent(root.transform, false);
             game.feedbackParticles = new SpriteRenderer[96];
+
             for (int i = 0; i < game.feedbackParticles.Length; i++)
             {
-                var spark = Block("Spark " + i.ToString("00"), feedbackPool, Vector2.zero, Vector2.one * 0.1f, Color.white, 25);
+                var spark = Block(
+                    "Spark " + i.ToString("00"),
+                    feedbackPool,
+                    Vector2.zero,
+                    Vector2.one * 0.1f,
+                    Color.white,
+                    25);
                 spark.gameObject.SetActive(false);
                 game.feedbackParticles[i] = spark;
             }
+
             BuildGameplayActors(game);
             BuildUi(game);
             var events = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
@@ -141,14 +211,22 @@ namespace Zpd.Defense.Editor
             fit.minimumHalfHeight = 7.2f;
             fit.minimumHalfWidth = 12.8f;
             fit.meadow = meadow;
-            EditorSceneManager.SaveScene(scene, AssetDatabase.GenerateUniqueAssetPath("Assets/Scenes/SoloDefense.unity"));
+            EditorSceneManager.SaveScene(
+                scene,
+                AssetDatabase.GenerateUniqueAssetPath("Assets/Scenes/SoloDefense.unity"));
             Selection.activeGameObject = root;
-            Debug.Log("[Defense Builder] Created wave defense with enemy roles, warnings, preparation supplies and feedback.");
+            Debug.Log(
+                "[Defense Builder] Created wave defense with enemy roles, warnings, preparation supplies and feedback.");
         }
 
         private static void BuildUi(DefenseGame game)
         {
-            var canvas = new GameObject("Defense Canvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            var canvas = new GameObject(
+                "Defense Canvas",
+                typeof(RectTransform),
+                typeof(Canvas),
+                typeof(CanvasScaler),
+                typeof(GraphicRaycaster));
             canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvas.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -168,67 +246,123 @@ namespace Zpd.Defense.Editor
             BuildStatusBars(game, root);
             game.readyPanel = Modal("Start Overlay", root, out var ready);
             Text("Title", ready, "THE LAST SIGNAL", 0, 177, 700, 64, 43);
-            Text("Subtitle", ready, "마지막 신호", 0, 108, 730, 48, 27);
-            game.startButton = Button("Start Defense", ready, "전투 시작", 0, -90, 370, 66, game.StartRun, "Battle");
+            Text("Subtitle", ready, "The Last Signal", 0, 108, 730, 48, 27);
+            game.startButton = Button("Start Defense", ready, "START DEFENSE", 0, -90, 370, 66, game.StartRun, "Battle");
 
             game.pausePanel = Modal("Pause Overlay", root, out var pause);
-            Text("Title", pause, "일시정지", 0, 110, 650, 64, 42);
-            game.resumeButton = Button("Resume", pause, "계속하기", 0, -75, 350, 64, game.Resume, "Battle");
+            Text("Title", pause, "PAUSED", 0, 110, 650, 64, 42);
+            game.resumeButton = Button("Resume", pause, "RESUME", 0, -75, 350, 64, game.Resume, "Battle");
             game.helpButton = Button("Help", pause, "?", 310, 200, 72, 66, game.OpenHelp, "Button");
             game.pausePanel.SetActive(false);
 
             game.helpPanel = Modal("Help Overlay", root, out var help);
-            Text("Title", help, "게임 안내", 0, 220, 700, 48, 30);
-            var explanation = Text("Description", help,
-                HelpCopy,
-                0, 15, 745, 350, 19);
+            Text("Title", help, "HOW TO PLAY", 0, 220, 700, 48, 30);
+            var explanation = Text("Description", help, HelpCopy, 0, 15, 745, 350, 19);
             explanation.alignment = TextAnchor.UpperLeft;
-            Text("Credits", help, "Sprites: Rgsdev (CC0) | Art: OpenAI / Codex | SFX: project originals\nFont: Noto Sans KR (SIL OFL 1.1)", 0, -191, 745, 43, 12);
-            game.helpBackButton = Button("Back to Pause", help, "돌아가기", 0, -240, 280, 52, game.CloseHelp, "Button");
+            Text(
+                "Credits",
+                help,
+                "Sprites: Rgsdev (CC0) | Art: OpenAI / Codex | SFX: project originals\nFont: NEXON Lv.1 Gothic / Copyright NEXON Korea Corporation",
+                0,
+                -191,
+                745,
+                43,
+                12);
+            game.helpBackButton = Button("Back to Pause", help, "BACK", 0, -240, 280, 52, game.CloseHelp, "Button");
             game.helpPanel.SetActive(false);
 
             game.resultPanel = Modal("Result Overlay", root, out var result);
             game.resultStats = Text("Run Stats", result, "", 0, 177, 735, 98, 24);
-            game.rewards.title = Text("Reward Status", result, "REWARD REQUEST FAILED", 0, 74, 735, 56, 28);
-            game.rewards.detail = Text("Reward Detail", result, "No experience was awarded.", 0, -3, 730, 80, 18);
-            game.resultUpload.statusText = Text("Game Log Status", result, "GAME LOG: --", 0, -92, 735, 65, 17);
-            game.rewards.retryButton = Button("Retry Reward", result, "RETRY FAILED REQUESTS", -190, -178, 328, 62, game.RetryRequests, "Button");
+            game.View.rewardTitle = Text("Reward Status", result, "REWARD REQUEST FAILED", 0, 74, 735, 56, 28);
+            game.View.rewardDetail = Text("Reward Detail", result, "No experience was awarded.", 0, -3, 730, 80, 18);
+            game.View.uploadStatus = Text("Game Log Status", result, "GAME LOG: --", 0, -92, 735, 65, 17);
+            game.View.retryButton = Button(
+                "Retry Reward",
+                result,
+                "RETRY FAILED REQUESTS",
+                -190,
+                -178,
+                328,
+                62,
+                game.RetryRequests,
+                "Button");
             game.restartButton = Button("New Run", result, "NEW RUN", 190, -178, 328, 62, game.StartRun, "Battle");
             game.resultPanel.SetActive(false);
+            BuildNavigation(game);
         }
 
         private static void BuildShop(DefenseGame game, Transform root)
         {
             var shop = Panel("Upgrade Cards and Supplies", root, 0, -30, 920, 440, "Panel");
             game.supplies.shopPanel = shop.gameObject;
-            game.supplies.shopTitle = Text("Countdown", shop, "강화 카드 1장 선택 · 무료", 0, 180, 840, 40, 26);
-            Text("Card Hint", shop, "선택 전에는 시간이 멈춥니다 · 강화는 이번 판에 누적됩니다", 0, 142, 840, 30, 17);
+            game.supplies.shopTitle = Text("Countdown", shop, "CHOOSE ONE FREE UPGRADE", 0, 180, 840, 40, 26);
+            Text("Card Hint", shop, "Time pauses until you choose. Upgrades last for this run.", 0, 142, 840, 30, 17);
             game.supplies.cardButtons = new Button[3];
             game.supplies.cardLabels = new Text[3];
-            UnityAction[] choices = { game.supplies.ChooseProjectiles, game.supplies.ChooseDamage, game.supplies.ChooseFireRate };
+            UnityAction[] choices =
+            {
+                game.supplies.ChooseProjectiles,
+                game.supplies.ChooseDamage,
+                game.supplies.ChooseFireRate
+            };
             var preview = new DefenseCombatStats();
+
             for (int i = 0; i < 3; i++)
             {
-                var card = Button("Upgrade Card " + (i + 1), shop, (i + 1) + "  " + DefenseUpgradeCatalog.At(i).Describe(preview), (i - 1) * 280, 25, 258, 172, choices[i], "Card");
+                var card = Button(
+                    "Upgrade Card " + (i + 1),
+                    shop,
+                    (i + 1) + "  " + DefenseUpgradeCatalog.At(i).Describe(preview),
+                    (i - 1) * 280,
+                    25,
+                    258,
+                    172,
+                    choices[i],
+                    "Card");
                 game.supplies.cardButtons[i] = card;
                 game.supplies.cardLabels[i] = card.GetComponentInChildren<Text>();
                 game.supplies.cardLabels[i].fontSize = 19;
             }
-            game.supplies.healButton = Button("Heal", shop, "4  회복 +35 / 15G", -214, -95, 400, 46, game.supplies.BuyHeal, "Battle");
+
+            game.supplies.healButton = Button(
+                "Heal",
+                shop,
+                "4  HEAL +35 / 15G",
+                -214,
+                -95,
+                400,
+                46,
+                game.supplies.BuyHeal,
+                "Battle");
             game.supplies.healLabel = game.supplies.healButton.GetComponentInChildren<Text>();
             game.supplies.healLabel.fontSize = 18;
-            game.supplies.repairButton = Button("Repair Beacon", shop, "5  비콘 +15 / 25G", 214, -95, 400, 46, game.supplies.BuyRepair, "Battle");
+            game.supplies.repairButton = Button(
+                "Repair Beacon",
+                shop,
+                "5  REPAIR +15 / 25G",
+                214,
+                -95,
+                400,
+                46,
+                game.supplies.BuyRepair,
+                "Battle");
             game.supplies.repairLabel = game.supplies.repairButton.GetComponentInChildren<Text>();
             game.supplies.repairLabel.fontSize = 17;
             game.supplies.shopMessage = Text("Feedback", shop, "", 0, -137, 840, 28, 15);
-            game.nextWaveButton = Button("Next Wave", shop, "다음 웨이브  [ENTER]", 0, -183, 380, 48, game.StartNextWave, "Button");
+            game.nextWaveButton = Button(
+                "Next Wave",
+                shop,
+                "NEXT WAVE  [ENTER]",
+                0,
+                -183,
+                380,
+                48,
+                game.StartNextWave,
+                "Button");
             shop.gameObject.SetActive(false);
         }
 
-        private const string HelpCopy = "마지막 신호석을 지켜 주세요. 플레이어 또는 비콘의 체력이 0이면 종료합니다.\n\n" +
-            "WASD / 방향키  이동     마우스  조준 · 왼쪽 버튼 사격\nSpace  대시     M  효과음 음소거     Esc  일시정지\n1 · 2 · 3  카드 선택     4  회복     5  비콘 수리\nEnter  다음 웨이브\n\n" +
-            "청록 막대: 추격병 / 주황 마름모: 비콘 공격병\n보라 세로 막대: 사격병. 조준선을 보고 투사체를 피하세요.\n명중하면 적의 공격 준비를 끊을 수 있습니다.\n" +
-            "웨이브 종료 후 무료 강화 카드 1장을 선택하세요. 선택 후 8초간 준비합니다.\n골드는 회복·수리에 사용하며, 비콘 수리는 보급당 1회입니다.\n카드 강화와 골드는 이번 판에서만 유지됩니다.";
+        private const string HelpCopy = "Protect the beacon. The run ends if you or the beacon fall.\n\n" + "WASD / Arrows: Move     Mouse: Aim / Left click: Shoot\nSpace: Dash     M: Mute sound     Esc: Pause\n1 / 2 / 3: Pick upgrade     4: Heal     5: Repair beacon\nEnter: Next wave\n\n" + "Teal: Chasers. Orange: Beacon attackers.\nPurple: Shooters. Watch their aim and dodge projectiles.\nHit enemies to interrupt their attacks.\n" + "Choose one free upgrade after each wave, then prepare for 8 seconds.\nSpend gold to heal or repair. Repair once per supply break.\nUpgrades and gold last for this run only.";
 
         private static void BuildGameplayActors(DefenseGame game)
         {
@@ -236,86 +370,241 @@ namespace Zpd.Defense.Editor
             {
                 int oldCount = game.bullets.Length;
                 Array.Resize(ref game.bullets, 128);
+
                 for (int i = oldCount; i < game.bullets.Length; i++)
                 {
-                    var bullet = WorldSprite("Bullet " + i, game.bullets[0].root.parent, Load("Extras/bullet.png")[0], 0.14f, 20);
-                    bullet.color = Hex("FFD077"); bullet.gameObject.SetActive(false);
-                    game.bullets[i] = new DefenseGame.BulletSlot { root = bullet.transform };
+                    var bullet = WorldSprite(
+                        "Bullet " + i,
+                        game.bullets[0].root.parent,
+                        Load("Extras/bullet.png")[0],
+                        0.14f,
+                        20);
+                    bullet.color = Hex("FFD077");
+                    bullet.gameObject.SetActive(false);
+                    game.bullets[i] = new DefenseGame.BulletSlot
+                    {
+                        root = bullet.transform
+                    };
                 }
             }
+
             if (game.enemyBullets.Length == 0)
             {
                 var pool = new GameObject("Enemy Projectile Pool - 48 authored slots").transform;
                 pool.SetParent(game.transform, false);
                 game.enemyBullets = new DefenseEnemyProjectile[48];
+
                 for (int i = 0; i < game.enemyBullets.Length; i++)
                 {
-                    var projectile = Block("Enemy Bolt " + i, pool, Vector2.zero, new Vector2(0.32f, 0.18f), Hex("FF438A"), 24);
+                    var projectile = Block(
+                        "Enemy Bolt " + i,
+                        pool,
+                        Vector2.zero,
+                        new Vector2(0.32f, 0.18f),
+                        Hex("FF438A"),
+                        24);
                     projectile.gameObject.SetActive(false);
-                    game.enemyBullets[i] = new DefenseEnemyProjectile { root = projectile.transform };
+                    game.enemyBullets[i] = new DefenseEnemyProjectile
+                    {
+                        root = projectile.transform
+                    };
                 }
             }
+
             if (game.entryMarkers.Length == 0)
             {
                 game.entryMarkers = new SpriteRenderer[2];
+
                 for (int i = 0; i < 2; i++)
                 {
-                    var marker = Block("Entry Warning " + i, game.transform, Vector2.zero, Vector2.one * 0.8f, Hex("FF6429"), 6);
+                    var marker = Block(
+                        "Entry Warning " + i,
+                        game.transform,
+                        Vector2.zero,
+                        Vector2.one * 0.8f,
+                        Hex("FF6429"),
+                        6);
                     marker.transform.localRotation = Quaternion.Euler(0, 0, 45);
                     marker.gameObject.SetActive(false);
                     game.entryMarkers[i] = marker;
                 }
             }
+
             foreach (var enemy in game.enemies)
             {
-                if (enemy.roleMarker == null) enemy.roleMarker = Block("Role Marker", enemy.root, new Vector2(0, 0.78f), Vector2.one * 0.24f, Color.white, 16);
-                if (enemy.attackMarker == null) enemy.attackMarker = Block("Attack Windup", enemy.root, new Vector2(0, -0.67f), new Vector2(0.64f, 0.08f), Color.red, 16);
-                if (enemy.healthBar == null) enemy.healthBar = Block("Enemy Health", enemy.root, new Vector2(0, 0.6f), new Vector2(0.64f, 0.056f), Color.green, 16);
-                if (enemy.aimMarker == null) enemy.aimMarker = Block("Ranged Aim Warning", enemy.root, Vector2.zero, new Vector2(6.2f, 0.045f), Hex("FF438A"), 5);
+                if (enemy.roleMarker == null)
+                {
+                    enemy.roleMarker = Block(
+                        "Role Marker",
+                        enemy.root,
+                        new Vector2(0, 0.78f),
+                        Vector2.one * 0.24f,
+                        Color.white,
+                        16);
+                }
+
+                if (enemy.attackMarker == null)
+                {
+                    enemy.attackMarker = Block(
+                        "Attack Windup",
+                        enemy.root,
+                        new Vector2(0, -0.67f),
+                        new Vector2(0.64f, 0.08f),
+                        Color.red,
+                        16);
+                }
+
+                if (enemy.healthBar == null)
+                {
+                    enemy.healthBar = Block(
+                        "Enemy Health",
+                        enemy.root,
+                        new Vector2(0, 0.6f),
+                        new Vector2(0.64f, 0.056f),
+                        Color.green,
+                        16);
+                }
+
+                if (enemy.aimMarker == null)
+                {
+                    enemy.aimMarker = Block(
+                        "Ranged Aim Warning",
+                        enemy.root,
+                        Vector2.zero,
+                        new Vector2(6.2f, 0.045f),
+                        Hex("FF438A"),
+                        5);
+                }
+
                 enemy.attackMarker.enabled = enemy.healthBar.enabled = enemy.aimMarker.enabled = false;
             }
         }
 
         private static void BuildStatusBars(DefenseGame game, Transform root)
         {
-            if (game.beaconHealthBar == null) game.beaconHealthBar = StatusBar("Beacon Health Bar", root, -330, 282, 480, 7, Hex("62D9B0"));
-            if (game.dashBar == null) game.dashBar = StatusBar("Dash Cooldown", root, -500, -285, 180, 10, Hex("72E0FF"));
-            if (game.dashText == null) game.dashText = Text("Dash Status", root, "DASH READY", -500, -310, 210, 28, 17, Color.white);
+            if (game.beaconHealthBar == null)
+            {
+                game.beaconHealthBar = StatusBar("Beacon Health Bar", root, -330, 282, 480, 7, Hex("62D9B0"));
+            }
+
+            if (game.dashBar == null)
+            {
+                game.dashBar = StatusBar("Dash Cooldown", root, -500, -285, 180, 10, Hex("72E0FF"));
+            }
+
+            if (game.dashText == null)
+            {
+                game.dashText = Text("Dash Status", root, "DASH READY", -500, -310, 210, 28, 17, Color.white);
+            }
+
             game.waveText.fontSize = 18;
         }
 
-        private static Image StatusBar(string name, Transform root, float x, float y, float width, float height, Color color)
+        private static Image StatusBar(
+            string name,
+            Transform root,
+            float x,
+            float y,
+            float width,
+            float height,
+            Color color)
         {
             var background = Rect(name + " Background", root, x, y, width, height).gameObject.AddComponent<Image>();
-            background.color = Ink; background.raycastTarget = false;
+            background.color = Ink;
+            background.raycastTarget = false;
             var fill = Rect(name, background.transform, 0, 0, width, height).gameObject.AddComponent<Image>();
-            fill.sprite = solid; fill.type = Image.Type.Filled; fill.fillMethod = Image.FillMethod.Horizontal;
-            fill.fillOrigin = 0; fill.fillAmount = 1; fill.color = color; fill.raycastTarget = false;
+            fill.sprite = solid;
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillOrigin = 0;
+            fill.fillAmount = 1;
+            fill.color = color;
+            fill.raycastTarget = false;
             return fill;
         }
 
         [MenuItem("ZPD/Defense/Upgrade Open Defense Scene")]
         public static void UpgradeOpenScene()
         {
-            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                return;
+            }
+
             var game = UnityEngine.Object.FindFirstObjectByType<DefenseGame>();
-            if (game == null) throw new InvalidOperationException("Open SoloDefense before upgrading.");
+
+            if (game == null)
+            {
+                throw new InvalidOperationException("Open SoloDefense before upgrading.");
+            }
+
             ui = AssetDatabase.LoadAllAssetsAtPath("Assets/Resources/UI/Lobby/cartoon-ui-atlas.png").OfType<Sprite>().ToArray();
-            font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Resources/Fonts/NotoSansKR/NotoSansKR-Regular.otf");
+            font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Resources/Fonts/NexonLv1/NEXONLv1GothicRegular.ttf");
             PrepareAssets();
             BuildBeaconVisual(game);
             BuildGameplayActors(game);
             var layout = game.healthText.transform.parent.parent;
+
             if (game.supplies.cardButtons.Length != 3)
             {
                 UnityEngine.Object.DestroyImmediate(game.supplies.shopPanel);
                 BuildShop(game, layout);
             }
+
             game.supplies.baseWeaponSprite = Load("Weapons/weaponR1.png")[0];
             BuildStatusBars(game, layout);
+            BuildNavigation(game);
+
             foreach (var label in game.helpPanel.GetComponentsInChildren<Text>(true))
-                if (label.name == "Description") label.text = HelpCopy;
+            {
+                if (label.name == "Description")
+                {
+                    label.text = HelpCopy;
+                }
+            }
+
             EditorSceneManager.MarkSceneDirty(game.gameObject.scene);
+        }
+
+        [MenuItem("ZPD/Defense/Add Lobby Return Buttons")]
+        public static void AddLobbyReturnButtons()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                return;
+            }
+
+            var game = UnityEngine.Object.FindFirstObjectByType<DefenseGame>();
+
+            if (game == null)
+            {
+                throw new InvalidOperationException("Open SoloDefense before adding return buttons.");
+            }
+
+            ui = AssetDatabase.LoadAllAssetsAtPath("Assets/Resources/UI/Lobby/cartoon-ui-atlas.png").OfType<Sprite>().ToArray();
+            font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Resources/Fonts/NexonLv1/NEXONLv1GothicRegular.ttf");
+            BuildNavigation(game);
+            EditorSceneManager.MarkSceneDirty(game.gameObject.scene);
+        }
+
+        private static void BuildNavigation(DefenseGame game)
+        {
+            foreach (var overlay in new[]
+            {
+                game.readyPanel,
+                game.pausePanel,
+                game.resultPanel
+            }
+
+            )
+            {
+                var panel = overlay.transform.Find("Panel");
+
+                if (panel.Find("Return to Lobby") == null)
+                {
+                    Button("Return to Lobby", panel, "RETURN TO LOBBY", 0, -246, 350, 46, game.ReturnToLobby, "Button");
+                }
+            }
         }
 
         private static void BuildBeaconVisual(DefenseGame game)
@@ -323,7 +612,12 @@ namespace Zpd.Defense.Editor
             const string path = "Assets/Resources/Art/Defense/defense-crystal.png";
             AssetDatabase.ImportAsset(path);
             var importer = AssetImporter.GetAtPath(path) as TextureImporter;
-            if (importer == null) throw new InvalidOperationException("Missing defense crystal: " + path);
+
+            if (importer == null)
+            {
+                throw new InvalidOperationException("Missing defense crystal: " + path);
+            }
+
             importer.textureShape = TextureImporterShape.Texture2D;
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
@@ -334,13 +628,32 @@ namespace Zpd.Defense.Editor
             importer.maxTextureSize = 1024;
             importer.SaveAndReimport();
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
-            if (sprite == null) throw new InvalidOperationException("Defense crystal sprite import failed: " + path);
+
+            if (sprite == null)
+            {
+                throw new InvalidOperationException("Defense crystal sprite import failed: " + path);
+            }
+
             // Keep the gameplay root and its hit feedback; replace only the authored artwork.
-            foreach (var name in new[] { "Outline", "Crystal", "Core", "Defense Crystal" })
+
+            foreach (var name in new[]
+            {
+                "Outline",
+                "Crystal",
+                "Core",
+                "Defense Crystal"
+            }
+
+            )
             {
                 var child = game.beacon.Find(name);
-                if (child != null) UnityEngine.Object.DestroyImmediate(child.gameObject);
+
+                if (child != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(child.gameObject);
+                }
             }
+
             WorldSprite("Defense Crystal", game.beacon, sprite, 2.4f, 1);
         }
 
@@ -352,7 +665,15 @@ namespace Zpd.Defense.Editor
             panel = Panel("Panel", overlay, 0, 0, 850, 570, "Panel");
             return overlay.gameObject;
         }
-        private static RectTransform Panel(string name, Transform parent, float x, float y, float w, float h, string skin)
+
+        private static RectTransform Panel(
+            string name,
+            Transform parent,
+            float x,
+            float y,
+            float w,
+            float h,
+            string skin)
         {
             var rect = Rect(name, parent, x, y, w, h);
             var image = rect.gameObject.AddComponent<Image>();
@@ -361,7 +682,17 @@ namespace Zpd.Defense.Editor
             image.pixelsPerUnitMultiplier = 2.5f;
             return rect;
         }
-        private static Button Button(string name, Transform parent, string label, float x, float y, float w, float h, UnityAction callback, string skin)
+
+        private static Button Button(
+            string name,
+            Transform parent,
+            string label,
+            float x,
+            float y,
+            float w,
+            float h,
+            UnityAction callback,
+            string skin)
         {
             var rect = Panel(name, parent, x, y, w, h, skin);
             var button = rect.gameObject.AddComponent<Button>();
@@ -370,7 +701,17 @@ namespace Zpd.Defense.Editor
             Text("Label", rect, label, 0, 2, w - 40, h - 12, 21);
             return button;
         }
-        private static Text Text(string name, Transform parent, string value, float x, float y, float w, float h, int size, Color? color = null)
+
+        private static Text Text(
+            string name,
+            Transform parent,
+            string value,
+            float x,
+            float y,
+            float w,
+            float h,
+            int size,
+            Color? color = null)
         {
             var text = Rect(name, parent, x, y, w, h).gameObject.AddComponent<Text>();
             text.font = font;
@@ -382,6 +723,7 @@ namespace Zpd.Defense.Editor
             text.raycastTarget = false;
             return text;
         }
+
         private static RectTransform Rect(string name, Transform parent, float x, float y, float w, float h)
         {
             var rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
@@ -391,7 +733,9 @@ namespace Zpd.Defense.Editor
             rect.anchoredPosition = new Vector2(x, y);
             return rect;
         }
+
         private static Sprite[] Load(string path) => AssetDatabase.LoadAllAssetsAtPath(Art + path).OfType<Sprite>().OrderBy(s => s.name).ToArray();
+
         private static SpriteRenderer WorldSprite(string name, Transform parent, Sprite sprite, float height, int order)
         {
             var renderer = new GameObject(name, typeof(SpriteRenderer)).GetComponent<SpriteRenderer>();
@@ -402,25 +746,41 @@ namespace Zpd.Defense.Editor
             renderer.transform.localScale = Vector3.one * height / sprite.bounds.size.y;
             return renderer;
         }
+
         private static Transform Composite(string name, Transform parent, string path, float height, int order)
         {
             var root = new GameObject(name).transform;
             root.SetParent(parent, false);
             var sprites = Load(path);
-            if (sprites.Length == 0) throw new InvalidOperationException("Missing art: " + path);
+
+            if (sprites.Length == 0)
+            {
+                throw new InvalidOperationException("Missing art: " + path);
+            }
+
             float minX = sprites.Min(s => s.rect.xMin), maxX = sprites.Max(s => s.rect.xMax);
             float minY = sprites.Min(s => s.rect.yMin), maxY = sprites.Max(s => s.rect.yMax);
             Vector2 center = new Vector2((minX + maxX) / 2, (minY + maxY) / 2);
             float scale = height / (maxY - minY);
+
             foreach (var sprite in sprites)
             {
                 var renderer = WorldSprite(sprite.name, root, sprite, sprite.rect.height * scale, order);
                 // Imported sprites may have bottom-left pivots; correct to the actual sheet position.
+
                 renderer.transform.localPosition = (sprite.rect.position + sprite.pivot - center) * scale;
             }
+
             return root;
         }
-        private static SpriteRenderer Block(string name, Transform parent, Vector2 position, Vector2 size, Color color, int order)
+
+        private static SpriteRenderer Block(
+            string name,
+            Transform parent,
+            Vector2 position,
+            Vector2 size,
+            Color color,
+            int order)
         {
             var renderer = WorldSprite(name, parent, solid, 1, order);
             renderer.transform.localScale = new Vector3(size.x / solid.bounds.size.x, size.y / solid.bounds.size.y, 1);
@@ -428,11 +788,13 @@ namespace Zpd.Defense.Editor
             renderer.color = color;
             return renderer;
         }
+
         private static void PrepareAssets()
         {
             const string folder = "Assets/Resources/UI/Defense";
             Directory.CreateDirectory(folder);
             const string path = folder + "/solid.png";
+
             if (!File.Exists(path))
             {
                 var texture = new Texture2D(8, 8);
@@ -441,6 +803,7 @@ namespace Zpd.Defense.Editor
                 File.WriteAllBytes(path, texture.EncodeToPNG());
                 UnityEngine.Object.DestroyImmediate(texture);
             }
+
             AssetDatabase.ImportAsset(path);
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.textureType = TextureImporterType.Sprite;
@@ -450,14 +813,25 @@ namespace Zpd.Defense.Editor
             solid = AssetDatabase.LoadAssetAtPath<Sprite>(path);
             const string materialPath = folder + "/DefenseUnlit.mat";
             spriteMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+
             if (spriteMaterial == null)
             {
                 var shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
-                if (shader == null) throw new InvalidOperationException("URP 2D unlit shader missing.");
+
+                if (shader == null)
+                {
+                    throw new InvalidOperationException("URP 2D unlit shader missing.");
+                }
+
                 spriteMaterial = new Material(shader);
                 AssetDatabase.CreateAsset(spriteMaterial, materialPath);
             }
         }
-        private static Color Hex(string value) { ColorUtility.TryParseHtmlString("#" + value, out var color); return color; }
+
+        private static Color Hex(string value)
+        {
+            ColorUtility.TryParseHtmlString("#" + value, out var color);
+            return color;
+        }
     }
 }

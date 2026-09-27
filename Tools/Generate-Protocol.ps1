@@ -12,7 +12,7 @@ if (!$Protoc) {
 if (!(Test-Path -LiteralPath $Protoc)) { throw 'Build zpd-server first, or supply -Protoc with the protoc executable path.' }
 $runtime = Join-Path $ProtobufPackage 'lib/netstandard2.0/Google.Protobuf.dll'
 if (!(Test-Path -LiteralPath $runtime)) { throw 'Supply -ProtobufPackage pointing to the extracted Google.Protobuf 3.35.0 NuGet package.' }
-$generated = Join-Path $clientRoot 'Assets/Scripts/Networking/Generated'
+$generated = Join-Path $clientRoot 'Assets/Scripts/Networking/Tcp/Generated'
 $plugins = Join-Path $clientRoot 'Assets/Plugins/Google.Protobuf'
 New-Item -ItemType Directory -Force -Path $generated, $plugins | Out-Null
 $sources = @('matchmaking.proto') | ForEach-Object { Join-Path $protoRoot $_ }

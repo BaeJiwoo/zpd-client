@@ -53,7 +53,7 @@ API 계약은 [API_IMPLEMENTATION.md](API_IMPLEMENTATION.md), 현재 연결 지�
 
 ### C04. 프로필·로비 요약
 
-대상: `LobbyController`, `LobbySceneBuilder`.
+대상: `LegacyLobbyController`, `LegacyLobbySceneBuilder`.
 
 - [ ] `GET /me` 결과를 이름, 레벨, 경험치, 경기/승패, 현재 캐릭터 표시에 바인딩한다.
 - [ ] 현재 빌더에만 존재하는 Text들을 명시적 view 참조/컴포넌트로 묶는다.
@@ -63,7 +63,7 @@ API 계약은 [API_IMPLEMENTATION.md](API_IMPLEMENTATION.md), 현재 연결 지�
 
 ### C05. 친구·검색·추천·요청
 
-대상: `LobbyController.RefreshSocial/SearchFriends`, `LobbySocialSlot`.
+대상: `LegacyLobbyController.RefreshSocial/SearchFriends`, `LobbySocialSlot`.
 
 - [ ] 친구/검색/추천 조회를 실제 서비스에 연결한다. 추천 새로고침은 첫 페이지를 다시 조회한다.
 - [ ] 서버 `relationship`과 `canRequestFriend`로 ADD FRIEND 상태를 결정한다.
@@ -77,7 +77,7 @@ API 계약은 [API_IMPLEMENTATION.md](API_IMPLEMENTATION.md), 현재 연결 지�
 
 ### C06. 하트 일괄 자동 송수신
 
-대상: `LobbyHeartAutomation`, `LobbyController.OpenFriends/RefreshSocial`, 하트 탭.
+대상: `LobbyHeartAutomation`, `LegacyLobbyController.OpenFriends/RefreshSocial`, 하트 탭.
 
 - [ ] 권장 `POST /me/hearts/sync` 계약 채택 여부를 확정한다.
 - [ ] 창 열기/새로고침을 sync 한 요청으로 연결하고 진행 중 중복 트리거를 합친다.
@@ -105,7 +105,7 @@ API 계약은 [API_IMPLEMENTATION.md](API_IMPLEMENTATION.md), 현재 연결 지�
 
 ### C08. 인벤토리·장비
 
-대상: `LobbySceneBuilder.BuildInventory`, 신규 inventory view/service.
+대상: `LegacyLobbySceneBuilder.BuildInventory`, 신규 inventory view/service.
 
 - [ ] 고정 12개 placeholder 슬롯을 서버 아이템 인스턴스에 재바인딩한다.
 - [ ] 현재 `InspectItem`은 미연결 안내만 표시하므로 선택 상세/슬롯/수량 UI를 추가한다.
@@ -119,7 +119,7 @@ API 계약은 [API_IMPLEMENTATION.md](API_IMPLEMENTATION.md), 현재 연결 지�
 
 ### C09. 테스트 통신에서 로비 전투 입장으로 연결
 
-대상: `MatchmakingClient`, `NetworkClient`, `Development/PacketHandler`, `LobbyController.EnterBattle`.
+대상: `MatchmakingClient`, `NetworkClient`, `Development/PacketHandler`, `LegacyLobbyController.EnterBattle`.
 
 - [ ] `MatchmakingClient.HandleConnected()`의 연결 즉시 RequestMatch 동작을 분리한다.
 - [ ] 개발용 ConnectionTest와 실제 로비가 공유할 인증된 연결/이벤트 라우터를 만든다.

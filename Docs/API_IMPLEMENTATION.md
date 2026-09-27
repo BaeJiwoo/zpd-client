@@ -335,7 +335,7 @@ items는 참여 ID·정산 ID·status·시각의 요약이고 개별 결과는 �
 `POST /api/v1/me/game-results`, 멱등 키 `{runId}:game-result`.
 이 API는 분석용 플레이 로그 저장이며 경험치 정산과 별도다.
 
-본문은 `Assets/Scripts/Gameplay/GameSessionTracker.cs`의 `GameRunSnapshot`이다.
+본문은 `Assets/Scripts/Gameplay/DTOs/GameRunSnapshot.cs`의 `GameRunSnapshot`이다.
 
 | 필드 | 의미 |
 | --- | --- |

@@ -1,3 +1,4 @@
+using Zpd.Networking;
 using System;
 using System.IO;
 using System.Reflection;
@@ -7,6 +8,9 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using Zpd.Gameplay;
+using Zpd.Lobby;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace Zpd.Defense.Editor
 {
@@ -24,9 +28,6 @@ namespace Zpd.Defense.Editor
                 PlayerSettings.companyName = "ZpdVerification";
                 PlayerSettings.productName = "SoloDefenseValidation";
                 EditorSceneManager.OpenScene("Assets/Scenes/SoloDefense.unity");
-                DefenseSceneBuilder.UpgradeOpenScene();
-                EditorSceneManager.SaveOpenScenes();
-                AssetDatabase.SaveAssets();
                 SessionState.SetBool(Pending, true);
                 EditorApplication.EnterPlaymode();
             }
@@ -69,7 +70,7 @@ namespace Zpd.Defense.Editor
                 game.Pause(); Require(!game.supplies.ChooseCard(0), "Paused card selection rejected"); game.Resume();
                 Require(game.supplies.ChooseCard(1), "Damage card selectable without gold");
                 Require(game.supplies.Damage == 2 && game.supplies.Gold == 0, "Damage card changes stats for free");
-                Require(game.supplies.cardLabels[1].text.Contains("1 → 2") && game.supplies.cardLabels[1].text.Contains("선택 완료"), "Selected card keeps its original preview and confirmation");
+                Require(game.supplies.cardLabels[1].text.Contains("1 → 2") && game.supplies.cardLabels[1].text.Contains("SELECTED"), "Selected card keeps its original preview and confirmation");
                 Require(!game.supplies.ChooseCard(0) && game.supplies.PelletCount == 1, "One card per wave");
                 game.supplies.OpenShop(); Require(!game.supplies.ChooseCard(0), "Repeated open cannot grant extra card");
                 var drop = game.supplies.drops[0]; drop.amount = 72; drop.root.position = game.player.position; drop.root.gameObject.SetActive(true);
@@ -183,8 +184,7 @@ namespace Zpd.Defense.Editor
                 Require(!game.supplies.ShopOpen && game.supplies.Gold == 0 && ActiveEnemyBolts(game) == 0, "Restart resets supplies and hostile projectiles");
                 foreach (var particle in game.feedbackParticles) Require(!particle.gameObject.activeSelf, "Restart clears feedback");
                 var snapshot = GameSessionTracker.Instance.Finish("verification", game.PlayerHealth, game.BeaconHealth); GameSessionTracker.MarkStored(snapshot.runId);
-                string result = "PASS: " + assertions + " assertions; card progression and enemy projectiles simulated in the real SoloDefense scene in Unity Play mode.";
-                File.WriteAllText(ResultPath, result); Debug.Log(result); EditorApplication.Exit(0);
+                BeginNavigationChecks();
             }
             catch (Exception error) { Fail(error); }
         }
@@ -235,7 +235,99 @@ namespace Zpd.Defense.Editor
         }
         private static void Advance(DefenseGame game, float seconds)
         { for (int i = 0; i < Mathf.CeilToInt(seconds / 0.05f); i++) game.Simulate(0.05f, Vector2.zero, Vector2.right, false, false); }
-        private static void Set(object target, string field, object value) => target.GetType().GetField(field, BindingFlags.NonPublic | BindingFlags.Instance).SetValue(target, value);
+        private static void Set(object target, string field, object value)
+        {
+            var flags = BindingFlags.NonPublic | BindingFlags.Instance;
+            var member = target.GetType().GetField(field, flags);
+            if (member != null) member.SetValue(target, value);
+            else target.GetType().GetProperty(field, flags).SetValue(target, value);
+        }
+        private static int navigationStep;
+        private static double navigationDeadline;
+        private static string navigationRun;
+        private static void BeginNavigationChecks()
+        {
+            var model = new DefenseModel();
+            model.Start("model-only");
+            Require(model.ApplyDamage(true, 30) == 30 && model.PlayerHealth == 70, "Model applies bounded damage without a scene");
+            Require(model.ApplyDamage(true, 30) == 0, "Model enforces invulnerability");
+            Require(model.Pause() && model.Heal(20) == 0 && !model.TryDash(true), "Model blocks actions while paused");
+            Require(model.Resume() && model.Heal(100) == 30, "Model caps restored health");
+            var lobby = new LegacyLobbyModel();
+            lobby.Toggle(LobbySection.Friends); lobby.SelectSocialPage(2); lobby.SelectSocialPage(9);
+            Require(lobby.Section == LobbySection.Friends && lobby.SocialPage == 2, "Lobby model validates navigation");
+            lobby.Toggle(LobbySection.Friends); Require(lobby.Section == LobbySection.None, "Same panel toggles closed");
+            lobby.SetSearch("  alice\nbob  "); Require(lobby.SearchQuery == "alice bob", "Search normalization belongs to model");
+            Require(SceneNavigation.CanLoad(SceneNavigation.Lobby) && SceneNavigation.CanLoad(SceneNavigation.SoloDefense), "Both navigation scenes are enabled");
+            navigationStep = 0;
+            navigationDeadline = EditorApplication.timeSinceStartup + 60;
+            EditorApplication.update += CheckNavigation;
+            SceneNavigation.Load(SceneNavigation.Lobby);
+        }
+        private static void ClickReturn(DefenseGame game, GameObject overlay)
+        {
+            var button = overlay.transform.Find("Panel/Return to Lobby").GetComponent<Button>();
+            Require(button.onClick.GetPersistentMethodName(0) == nameof(DefenseGame.ReturnToLobby), "Authored return button targets controller");
+            button.onClick.Invoke();
+        }
+        private static void CheckNavigation()
+        {
+            try
+            {
+                if (EditorApplication.timeSinceStartup > navigationDeadline) throw new Exception("Scene navigation timed out at step " + navigationStep);
+                string scene = SceneManager.GetActiveScene().path;
+                if (navigationStep % 2 == 0)
+                {
+                    if (scene != SceneNavigation.Lobby) return;
+                    var lobby = UnityEngine.Object.FindFirstObjectByType<LobbyController>();
+                    Require(lobby != null && lobby.View != null, "Lobby controller and migrated view survive scene load");
+                    Require(!GameSessionTracker.Instance.IsRunning, "Lobby has no active defense run");
+                    if (navigationStep == 4)
+                    {
+                        Require(GameSessionTracker.Instance.CompletedJson.Contains("returned_to_lobby"), "Mid-run exit persists an explicit end reason");
+                        GameSessionTracker.MarkStored(navigationRun);
+                    }
+                    if (navigationStep == 6)
+                    {
+                        Require(UnityEngine.Object.FindObjectsByType<GameSessionTracker>(FindObjectsSortMode.None).Length == 1, "Repeated navigation keeps one tracker");
+                        GameSessionTracker.MarkStored(navigationRun);
+                        EditorApplication.update -= CheckNavigation;
+                        string result = "PASS: " + assertions + " assertions; MVC models, combat regression and Lobby/SoloDefense round trips (ready, paused, ended).";
+                        File.WriteAllText(ResultPath, result); Debug.Log(result); EditorApplication.Exit(0); return;
+                    }
+                    lobby.OpenFriends(); Require(lobby.social.Model.Section == LobbySection.Friends, "Lobby input updates social model");
+                    lobby.social.ClosePanel(); Require(!lobby.social.backdrop.activeSelf, "Lobby view reflects closed social panel");
+                    navigationStep++;
+                    lobby.View.soloButton.onClick.Invoke();
+                }
+                else
+                {
+                    if (scene != SceneNavigation.SoloDefense) return;
+                    var game = UnityEngine.Object.FindFirstObjectByType<DefenseGame>();
+                    Require(game != null && game.State == DefenseState.Ready && game.View.readyPanel.activeSelf, "Defense opens in ready state with migrated view");
+                    if (navigationStep == 1) { navigationStep++; ClickReturn(game, game.readyPanel); }
+                    else if (navigationStep == 3)
+                    {
+                        game.StartRun(); navigationRun = game.RunId; game.Pause();
+                        Require(game.State == DefenseState.Paused, "Can pause after entering from lobby");
+                        navigationStep++; ClickReturn(game, game.pausePanel);
+                    }
+                    else
+                    {
+                        game.StartRun(); navigationRun = game.RunId;
+                        AuthManager.Instance.Logout(); // Unauthenticated uploads must fail locally.
+                        game.ApplyEnemyDamage(false, 100); game.Simulate(0, Vector2.zero, Vector2.right, false, false);
+                        Require(game.State == DefenseState.Ended && game.resultPanel.activeSelf, "Defeat renders results");
+                        Require(game.View.uploadStatus.text.Contains("FAILED") && game.View.rewardTitle.text.Contains("FAILED"), "Service failures render through View");
+                        Require(game.View.retryButton.interactable, "Failed requests enable retry through View");
+                        game.RetryRequests();
+                        Require(game.View.retryButton.interactable && !game.rewards.Succeeded && !game.resultUpload.Succeeded, "Retry preserves failure without fabricating success");
+                        navigationStep++; ClickReturn(game, game.resultPanel);
+                    }
+                }
+            }
+            catch (Exception error) { EditorApplication.update -= CheckNavigation; Fail(error); }
+        }
         private static T Get<T>(object target, string field) => (T)target.GetType().GetField(field, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(target);
         private static void SetProperty(object target, string property, object value) => target.GetType().GetProperty(property).SetValue(target, value);
         private static void Require(bool condition, string message) { if (!condition) throw new Exception(message); assertions++; }

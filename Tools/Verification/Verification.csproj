@@ -6,8 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
-    <Compile Include="../../Assets/Scripts/Networking/*.cs" />
-    <Compile Include="../../Assets/Scripts/Networking/Generated/*.cs" />
+    <Compile Include="../../Assets/Scripts/Networking/Tcp/*.cs" />
+    <Compile Include="../../Assets/Scripts/Networking/Tcp/Generated/*.cs" />
     <Compile Include="MatchmakingChecks.cs" />
     <Reference Include="Google.Protobuf"><HintPath>../../Assets/Plugins/Google.Protobuf/Google.Protobuf.dll</HintPath></Reference>
   </ItemGroup>

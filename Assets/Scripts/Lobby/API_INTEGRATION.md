@@ -1,5 +1,7 @@
 # 로비 API 연결 지점
 
+새 `Lobby`는 `ILobbyService` 기반 MVC로 분리되어 있다. [새 로비 서비스 추가 방안](../../../Docs/LOBBY_SERVICES.md)을 우선 참고한다. 아래 내용은 기존 로비와 재사용 중인 소셜 위젯에 대한 설명이다.
+
 이 문서는 **현재 로그 전용 UI 코드의 연결 지점**을 설명합니다.
 전체 서버 계약 제안은 [API 구현 명세](../../../Docs/API_IMPLEMENTATION.md),
 진행할 작업은 [클라이언트 작업 목록](../../../Docs/CLIENT_TASKS.md)을 참고하세요.

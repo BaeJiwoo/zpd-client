@@ -22,4 +22,4 @@ $process = Start-Process -FilePath $Unity -ArgumentList $arguments -WindowStyle 
 Write-Output "Validation PID: $($process.Id)"
 Write-Output "Log: $validationRoot/validation.log"
 Write-Output "Result: $validationRoot/validation-result.txt"
-Write-Output 'The isolated scene is upgraded before testing. Copy it back only after a passing result.'
+Write-Output 'The saved scenes are tested as-is; no scene upgrade is applied during validation.'

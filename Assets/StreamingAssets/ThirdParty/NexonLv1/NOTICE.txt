@@ -1,0 +1,16 @@
+NEXON Lv.1 Gothic
+
+Original font copyright notice:
+Copyright (c) 2017 NEXON. All rights reserved. Font designed by FONTRIX Inc.
+
+Source: https://brand.nexon.com/en/ci-brand-guidelines/typeface#section-lv1-gothic
+Download: https://brand.nexon.com/resources/NEXON_Lv1_Gothic.zip
+Terms checked: 2026-09-25
+
+Summary of the official FAQ (not a replacement for its terms):
+Free personal and commercial use and distribution are permitted.
+The font may not be sold separately. Bundling and embedding in software
+are permitted when the original font copyright notice is included.
+Source attribution is recommended. Font-based promotional materials may
+be used by NEXON for its promotions.
+The font file is distributed unmodified.
