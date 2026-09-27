@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Zpd.Networking;
@@ -11,34 +12,41 @@ namespace Zpd.Lobby
     [RequireComponent(typeof(LobbyView))]
     public sealed class LobbyController : MonoBehaviour
     {
+        [FormerlySerializedAs("view")]
         [SerializeField]
-        private LobbyView view;
+        private LobbyView lobby_view;
 
+        [FormerlySerializedAs("apiTimeoutSeconds")]
         [Header("Account API")]
         [SerializeField, Min(1)]
-        private int apiTimeoutSeconds = 15;
+        private int api_timeout_seconds = 15;
 
-        public LobbyView View => view != null ? view : (view = GetComponent<LobbyView>());
+        public LobbyView View => lobby_view != null ? lobby_view : (lobby_view = GetComponent<LobbyView>());
         public LobbyModel Model { get; private set; } = new LobbyModel();
 
-        public LegacyLobbyController social;
+        [FormerlySerializedAs("social")]
+        public LegacyLobbyController legacy_lobby_controller;
         public event Action MultiPlayRequested;
-        private ILobbyService service;
-        private CancellationTokenSource lifetime;
-        private int generation, profileRequest, inventoryRequest;
-        private bool initialized;
-        private bool serviceConfigured;
+        private ILobbyService lobby_service;
+        private CancellationTokenSource cts_lifetime;
+        private int account_generation;
+
+        private int profile_request_version;
+
+        private int inventory_request_version;
+        private bool is_initialized;
+        private bool is_service_configured;
 
         private void Awake()
         {
             View.Initialize();
-            initialized = true;
+            is_initialized = true;
             RenderAll();
         }
 
         private void Start()
         {
-            if (!serviceConfigured)
+            if (!is_service_configured)
             {
                 RestoreSession();
             }
@@ -48,7 +56,7 @@ namespace Zpd.Lobby
         {
             ConfigureService(
                 AuthManager.Instance.IsSignedIn
-                ? new LobbyApiService(AuthManager.Instance.Current, apiTimeoutSeconds)
+                ? new LobbyApiService(AuthManager.Instance.Current, api_timeout_seconds)
                 : null);
 
             if (!AuthManager.Instance.IsSignedIn)
@@ -74,16 +82,16 @@ namespace Zpd.Lobby
 
         private void OnEnable()
         {
-            lifetime?.Dispose();
-            lifetime = new CancellationTokenSource();
+            cts_lifetime?.Dispose();
+            cts_lifetime = new CancellationTokenSource();
             View.ItemSelected += InspectItem;
             AuthManager.Instance.Changed += RestoreSession;
 
-            if (initialized && (!serviceConfigured || service is LobbyApiService))
+            if (is_initialized && (!is_service_configured || lobby_service is LobbyApiService))
             {
                 RestoreSession();
             }
-            else if (initialized && service != null)
+            else if (is_initialized && lobby_service != null)
             {
                 _ = RefreshAsync();
             }
@@ -91,15 +99,15 @@ namespace Zpd.Lobby
 
         private void OnDisable()
         {
-            generation++;
-            lifetime?.Cancel();
-            lifetime?.Dispose();
-            lifetime = null;
+            account_generation++;
+            cts_lifetime?.Cancel();
+            cts_lifetime?.Dispose();
+            cts_lifetime = null;
             AuthManager.Instance.Changed -= RestoreSession;
             View.ItemSelected -= InspectItem;
             Model = new LobbyModel();
 
-            if (initialized)
+            if (is_initialized)
             {
                 View.CloseSection();
                 RenderAll();
@@ -109,7 +117,7 @@ namespace Zpd.Lobby
         private void Update()
         {
             AuthManager.Instance.CheckExpiry();
-            View.SyncInteraction(social != null && social.backdrop.activeSelf);
+            View.SyncInteraction(legacy_lobby_controller != null && legacy_lobby_controller.game_object_backdrop.activeSelf);
 
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
@@ -120,23 +128,23 @@ namespace Zpd.Lobby
         /// <summary>Call on Unity's main thread after authentication, and with null on logout.</summary>
         public void ConfigureService(ILobbyService authenticatedService)
         {
-            serviceConfigured = true;
-            generation++;
-            lifetime?.Cancel();
-            lifetime?.Dispose();
-            lifetime = new CancellationTokenSource();
-            service = authenticatedService;
+            is_service_configured = true;
+            account_generation++;
+            cts_lifetime?.Cancel();
+            cts_lifetime?.Dispose();
+            cts_lifetime = new CancellationTokenSource();
+            lobby_service = authenticatedService;
             Model = new LobbyModel();
             View.CloseSection();
-            View.ShowStatus(service == null ? "Account service not connected." : "Select a menu to view account data.");
+            View.ShowStatus(lobby_service == null ? "Account service not connected." : "Select a menu to view account data.");
 
-            if (social != null)
+            if (legacy_lobby_controller != null)
             {
-                social.ClosePanel();
-                social.heartAutomation.ResetForAccount();
-                social.characterPicker.ResetServerState();
+                legacy_lobby_controller.ClosePanel();
+                legacy_lobby_controller.lobby_heart_automation.ResetForAccount();
+                legacy_lobby_controller.lobby_character_picker.ResetServerState();
 
-                foreach (var row in social.friends.GetComponentsInChildren<LobbySocialSlot>(true))
+                foreach (var row in legacy_lobby_controller.lobby_panel_friends.GetComponentsInChildren<LobbySocialSlot>(true))
                 {
                     row.Clear();
                 }
@@ -144,7 +152,7 @@ namespace Zpd.Lobby
 
             RenderAll();
 
-            if (isActiveAndEnabled && service != null)
+            if (isActiveAndEnabled && lobby_service != null)
             {
                 _ = RefreshAsync();
             }
@@ -154,14 +162,14 @@ namespace Zpd.Lobby
 
         public async Task RefreshProfileAsync()
         {
-            if (service == null || !isActiveAndEnabled)
+            if (lobby_service == null || !isActiveAndEnabled)
             {
                 return;
             }
 
-            var api = service;
-            int account = generation, request = ++profileRequest;
-            var token = lifetime.Token;
+            var api = lobby_service;
+            int account = account_generation, request = ++profile_request_version;
+            var token = cts_lifetime.Token;
             Model.BeginProfile();
             View.RenderProfile(Model);
 
@@ -169,7 +177,7 @@ namespace Zpd.Lobby
             {
                 var response = await api.GetProfileAsync(token);
 
-                if (!Current(account, token) || request != profileRequest)
+                if (!Current(account, token) || request != profile_request_version)
                 {
                     return;
                 }
@@ -179,7 +187,7 @@ namespace Zpd.Lobby
             }
             catch (Exception error)
             {
-                if (!Current(account, token) || request != profileRequest)
+                if (!Current(account, token) || request != profile_request_version)
                 {
                     return;
                 }
@@ -191,14 +199,14 @@ namespace Zpd.Lobby
 
         public async Task RefreshInventoryAsync()
         {
-            if (service == null || !isActiveAndEnabled || Model.IsUsingItem)
+            if (lobby_service == null || !isActiveAndEnabled || Model.IsUsingItem)
             {
                 return;
             }
 
-            var api = service;
-            int account = generation, request = ++inventoryRequest;
-            var token = lifetime.Token;
+            var api = lobby_service;
+            int account = account_generation, request = ++inventory_request_version;
+            var token = cts_lifetime.Token;
             Model.BeginInventory();
             View.RenderInventory(Model);
 
@@ -206,7 +214,7 @@ namespace Zpd.Lobby
             {
                 var response = await api.GetInventoryAsync(token);
 
-                if (!Current(account, token) || request != inventoryRequest)
+                if (!Current(account, token) || request != inventory_request_version)
                 {
                     return;
                 }
@@ -225,7 +233,7 @@ namespace Zpd.Lobby
             }
             catch (Exception error)
             {
-                if (!Current(account, token) || request != inventoryRequest)
+                if (!Current(account, token) || request != inventory_request_version)
                 {
                     return;
                 }
@@ -242,16 +250,16 @@ namespace Zpd.Lobby
 
         public async Task UseSelectedItemAsync()
         {
-            if (service == null || !isActiveAndEnabled || !Model.BeginUse())
+            if (lobby_service == null || !isActiveAndEnabled || !Model.BeginUse())
             {
                 return;
             }
 
-            var api = service;
-            int account = generation;
-            var token = lifetime.Token;
+            var api = lobby_service;
+            int account = account_generation;
+            var token = cts_lifetime.Token;
             string id = Model.OperationItemId, operation = Model.OperationId;
-            ++inventoryRequest; // Reads issued before a mutation cannot overwrite its result.
+            ++inventory_request_version; // Reads issued before a mutation cannot overwrite its result.
             View.ShowItem(Model, true);
 
             try
@@ -311,7 +319,7 @@ namespace Zpd.Lobby
             }
         }
 
-        private bool Current(int account, CancellationToken token) => this != null && isActiveAndEnabled && !token.IsCancellationRequested && account == generation;
+        private bool Current(int account, CancellationToken token) => this != null && isActiveAndEnabled && !token.IsCancellationRequested && account == account_generation;
 
         private static string Message(Exception error) => error is LobbyServiceException
             ? error.Message
@@ -324,15 +332,15 @@ namespace Zpd.Lobby
             View.RenderProfile(Model);
             var p = Model.Profile;
 
-            if (social != null)
+            if (legacy_lobby_controller != null)
             {
-                social.characterPicker.ResetServerState();
+                legacy_lobby_controller.lobby_character_picker.ResetServerState();
             }
 
-            if (social != null && p != null && !string.IsNullOrEmpty(p.CharacterId) && !string.IsNullOrEmpty(p.CharacterArtKey))
+            if (legacy_lobby_controller != null && p != null && !string.IsNullOrEmpty(p.CharacterId) && !string.IsNullOrEmpty(p.CharacterArtKey))
             {
-                social.characterPicker.BindOwnership(p.CharacterArtKey, p.CharacterId, true);
-                social.characterPicker.ApplyConfirmedCharacter(p.CharacterId);
+                legacy_lobby_controller.lobby_character_picker.BindOwnership(p.CharacterArtKey, p.CharacterId, true);
+                legacy_lobby_controller.lobby_character_picker.ApplyConfirmedCharacter(p.CharacterId);
             }
         }
 
@@ -374,7 +382,7 @@ namespace Zpd.Lobby
 
             if (Model.SelectedItem != null)
             {
-                View.ShowItem(Model, service != null);
+                View.ShowItem(Model, lobby_service != null);
             }
         }
 
@@ -405,8 +413,8 @@ namespace Zpd.Lobby
         public void OpenFriends()
         {
             CloseSection();
-            social.OpenFriends();
-            View.SyncInteraction(social.backdrop.activeSelf);
+            legacy_lobby_controller.OpenFriends();
+            View.SyncInteraction(legacy_lobby_controller.game_object_backdrop.activeSelf);
         }
 
         public void OpenMultiPlay()
@@ -431,32 +439,32 @@ namespace Zpd.Lobby
                 return;
             }
 
-            social.EnterSoloDefense();
+            legacy_lobby_controller.EnterSoloDefense();
         }
 
         // Compatibility for existing editor builders and authored tests. UI serialization belongs to View.
 
-        public LobbyItemCard cardTemplate { get => View.cardTemplate; set => View.cardTemplate = value; }
-        public Text nickname { get => View.nickname; set => View.nickname = value; }
-        public Text level { get => View.level; set => View.level = value; }
-        public Text record { get => View.record; set => View.record = value; }
-        public Text history { get => View.history; set => View.history = value; }
-        public Text inventoryStatus { get => View.inventoryStatus; set => View.inventoryStatus = value; }
-        public Text status { get => View.status; set => View.status = value; }
-        public Text emptyState { get => View.emptyState; set => View.emptyState = value; }
-        public Text modalTitle { get => View.modalTitle; set => View.modalTitle = value; }
-        public Text modalDescription { get => View.modalDescription; set => View.modalDescription = value; }
-        public Text modalQuantity { get => View.modalQuantity; set => View.modalQuantity = value; }
-        public Button useButton { get => View.useButton; set => View.useButton = value; }
-        public Button soloButton { get => View.soloButton; set => View.soloButton = value; }
-        public CanvasGroup home { get => View.home; set => View.home = value; }
-        public CanvasGroup sections { get => View.sections; set => View.sections = value; }
-        public Slider quantitySlider { get => View.quantitySlider; set => View.quantitySlider = value; }
-        public GameObject profilePanel { get => View.profilePanel; set => View.profilePanel = value; }
-        public GameObject inventoryPanel { get => View.inventoryPanel; set => View.inventoryPanel = value; }
-        public GameObject modal { get => View.modal; set => View.modal = value; }
-        public GameObject quantityRoot { get => View.quantityRoot; set => View.quantityRoot = value; }
-        public Transform content { get => View.content; set => View.content = value; }
-        public Button[] filters { get => View.filters; set => View.filters = value; }
+        public LobbyItemCard lobby_item_card_template { get => View.lobby_item_card_template; set => View.lobby_item_card_template = value; }
+        public Text txt_nickname { get => View.txt_nickname; set => View.txt_nickname = value; }
+        public Text txt_level { get => View.txt_level; set => View.txt_level = value; }
+        public Text txt_record { get => View.txt_record; set => View.txt_record = value; }
+        public Text txt_history { get => View.txt_history; set => View.txt_history = value; }
+        public Text txt_inventory_status { get => View.txt_inventory_status; set => View.txt_inventory_status = value; }
+        public Text txt_status { get => View.txt_status; set => View.txt_status = value; }
+        public Text txt_empty_state { get => View.txt_empty_state; set => View.txt_empty_state = value; }
+        public Text txt_modal_title { get => View.txt_modal_title; set => View.txt_modal_title = value; }
+        public Text txt_modal_description { get => View.txt_modal_description; set => View.txt_modal_description = value; }
+        public Text txt_modal_quantity { get => View.txt_modal_quantity; set => View.txt_modal_quantity = value; }
+        public Button btn_use_item { get => View.btn_use_item; set => View.btn_use_item = value; }
+        public Button btn_solo_defense { get => View.btn_solo_defense; set => View.btn_solo_defense = value; }
+        public CanvasGroup canvas_group_home { get => View.canvas_group_home; set => View.canvas_group_home = value; }
+        public CanvasGroup canvas_group_sections { get => View.canvas_group_sections; set => View.canvas_group_sections = value; }
+        public Slider slider_quantity { get => View.slider_quantity; set => View.slider_quantity = value; }
+        public GameObject game_object_profile_panel { get => View.game_object_profile_panel; set => View.game_object_profile_panel = value; }
+        public GameObject game_object_inventory_panel { get => View.game_object_inventory_panel; set => View.game_object_inventory_panel = value; }
+        public GameObject game_object_modal { get => View.game_object_modal; set => View.game_object_modal = value; }
+        public GameObject game_object_quantity_root { get => View.game_object_quantity_root; set => View.game_object_quantity_root = value; }
+        public Transform transform_inventory_content { get => View.transform_inventory_content; set => View.transform_inventory_content = value; }
+        public Button[] btn_inventory_filters { get => View.btn_inventory_filters; set => View.btn_inventory_filters = value; }
     }
 }

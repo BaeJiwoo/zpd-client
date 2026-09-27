@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -7,67 +8,92 @@ namespace Zpd.Lobby
     [RequireComponent(typeof(CanvasGroup))]
     public sealed class LegacyLobbyView : MonoBehaviour
     {
-        public LobbyPanel profile;
-        public LobbyPanel friends;
-        public LobbyPanel inventory;
-        public LobbyPanel characters;
-        public LobbyCharacterPicker characterPicker;
-        public GameObject backdrop;
-        public GameObject[] friendPages;
-        public Button[] friendTabs;
-        public InputField searchInput;
-        public Text searchStatus;
-        public Text status;
-        public Text itemDetails;
-        public Text socialStatus;
-        private LobbyPanel visible;
-        private GameObject previousSelection;
+        [FormerlySerializedAs("profile")]
+        public LobbyPanel lobby_panel_profile;
 
-        public string SearchQuery => searchInput.text;
+        [FormerlySerializedAs("friends")]
+        public LobbyPanel lobby_panel_friends;
+
+        [FormerlySerializedAs("inventory")]
+        public LobbyPanel lobby_panel_inventory;
+
+        [FormerlySerializedAs("characters")]
+        public LobbyPanel lobby_panel_characters;
+
+        [FormerlySerializedAs("characterPicker")]
+        public LobbyCharacterPicker lobby_character_picker;
+
+        [FormerlySerializedAs("backdrop")]
+        public GameObject game_object_backdrop;
+
+        [FormerlySerializedAs("friendPages")]
+        public GameObject[] game_object_friend_pages;
+
+        [FormerlySerializedAs("friendTabs")]
+        public Button[] btn_friend_tabs;
+
+        [FormerlySerializedAs("searchInput")]
+        public InputField input_search;
+
+        [FormerlySerializedAs("searchStatus")]
+        public Text txt_search_status;
+
+        [FormerlySerializedAs("status")]
+        public Text txt_status;
+
+        [FormerlySerializedAs("itemDetails")]
+        public Text txt_item_details;
+
+        [FormerlySerializedAs("socialStatus")]
+        public Text txt_social_status;
+        private LobbyPanel lobby_panel_visible;
+        private GameObject game_object_previous_selection;
+
+        public string SearchQuery => input_search.text;
 
         public void Initialize()
         {
-            profile.Hide();
-            friends.Hide();
-            inventory.Hide();
-            characters.Hide();
-            characterPicker.ResetServerState();
+            lobby_panel_profile.Hide();
+            lobby_panel_friends.Hide();
+            lobby_panel_inventory.Hide();
+            lobby_panel_characters.Hide();
+            lobby_character_picker.ResetServerState();
 
-            foreach (var row in friends.GetComponentsInChildren<LobbySocialSlot>(true))
+            foreach (var row in lobby_panel_friends.GetComponentsInChildren<LobbySocialSlot>(true))
             {
                 row.Clear();
             }
 
-            backdrop.SetActive(false);
+            game_object_backdrop.SetActive(false);
         }
 
         public void ShowSection(LobbySection section)
         {
             LobbyPanel panel = section == LobbySection.Profile
-                ? profile
+                ? lobby_panel_profile
                 : section == LobbySection.Friends
-                ? friends
+                ? lobby_panel_friends
                 : section == LobbySection.Inventory
-                ? inventory
-                : section == LobbySection.Characters ? characters : null;
+                ? lobby_panel_inventory
+                : section == LobbySection.Characters ? lobby_panel_characters : null;
 
-            if (visible == panel)
+            if (lobby_panel_visible == panel)
             {
                 return;
             }
 
-            if (visible != null)
+            if (lobby_panel_visible != null)
             {
-                visible.Hide(panel == null);
+                lobby_panel_visible.Hide(panel == null);
             }
             else if (EventSystem.current != null)
             {
-                previousSelection = EventSystem.current.currentSelectedGameObject;
+                game_object_previous_selection = EventSystem.current.currentSelectedGameObject;
             }
 
-            visible = panel;
+            lobby_panel_visible = panel;
             GetComponent<CanvasGroup>().interactable = panel == null;
-            backdrop.SetActive(panel != null);
+            game_object_backdrop.SetActive(panel != null);
 
             if (panel != null)
             {
@@ -76,31 +102,31 @@ namespace Zpd.Lobby
 
             if (EventSystem.current != null)
             {
-                EventSystem.current.SetSelectedGameObject(panel == null ? previousSelection : null);
+                EventSystem.current.SetSelectedGameObject(panel == null ? game_object_previous_selection : null);
             }
         }
 
         public void ShowSocialPage(int index)
         {
-            for (int i = 0; i < friendPages.Length; i++)
+            for (int i = 0; i < game_object_friend_pages.Length; i++)
             {
-                friendPages[i].SetActive(i == index);
-                friendTabs[i].interactable = i != index;
+                game_object_friend_pages[i].SetActive(i == index);
+                btn_friend_tabs[i].interactable = i != index;
             }
         }
 
         public void ClearSocialPage(int index)
         {
-            foreach (var row in friendPages[index].GetComponentsInChildren<LobbySocialSlot>(true))
+            foreach (var row in game_object_friend_pages[index].GetComponentsInChildren<LobbySocialSlot>(true))
             {
                 row.Clear();
             }
         }
 
-        public void ShowStatus(string message) => status.text = message;
+        public void ShowStatus(string message) => txt_status.text = message;
 
-        public void ShowSearchStatus(string message) => searchStatus.text = message;
+        public void ShowSearchStatus(string message) => txt_search_status.text = message;
 
-        public void ShowItemDetails(string message) => itemDetails.text = message;
+        public void ShowItemDetails(string message) => txt_item_details.text = message;
     }
 }

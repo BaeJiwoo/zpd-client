@@ -6,7 +6,7 @@
 
 ## 연결 설정
 
-Login 씬의 `LoginController.apiRoot`를 설정한다. 로비·게임 결과·보상 요청은 로그인 세션에 묶인 이 주소를 공유한다.
+Login 씬의 `LoginController.api_root`를 설정한다. 로비·게임 결과·보상 요청은 로그인 세션에 묶인 이 주소를 공유한다.
 
 - ID/password login and session lifetime follow the [login contract](LOGIN.md).
 - 로그인 성공 시 `AuthManager.Instance.SetSession(AccountSession)`을 호출한다. 로비는 세션 변경을 구독하고 씬 재진입 시에도 같은 세션으로 연결한다.

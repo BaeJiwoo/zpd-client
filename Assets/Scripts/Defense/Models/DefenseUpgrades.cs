@@ -98,12 +98,12 @@ namespace Zpd.Defense
     /// <summary>Immutable command catalog; state belongs exclusively to each run's stats.</summary>
     public static class DefenseUpgradeCatalog
     {
-        public static readonly IDefenseUpgradeCommand Projectiles = new ExtraProjectileUpgrade();
-        public static readonly IDefenseUpgradeCommand Damage = new DamageUpgrade();
-        public static readonly IDefenseUpgradeCommand FireRate = new FireRateUpgrade();
+        public static readonly IDefenseUpgradeCommand upgrade_projectiles = new ExtraProjectileUpgrade();
+        public static readonly IDefenseUpgradeCommand upgrade_damage = new DamageUpgrade();
+        public static readonly IDefenseUpgradeCommand upgrade_fire_rate = new FireRateUpgrade();
 
         public static IDefenseUpgradeCommand At(int index) => index == 0
-            ? Projectiles
-            : index == 1 ? Damage : index == 2 ? FireRate : null;
+            ? upgrade_projectiles
+            : index == 1 ? upgrade_damage : index == 2 ? upgrade_fire_rate : null;
     }
 }

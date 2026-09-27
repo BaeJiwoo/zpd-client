@@ -17,35 +17,35 @@ namespace Zpd.Gameplay
         public bool Succeeded { get; private set; }
         public string RunId { get; private set; }
 
-        private string payload;
-        private AccountSession session;
-        private CancellationTokenSource lifetime;
+        private string request_json;
+        private AccountSession account_session;
+        private CancellationTokenSource cts_request;
 
         public void Submit(GameRunSnapshot snapshot)
         {
             Cancel();
-            session = AuthManager.Instance.Current;
+            account_session = AuthManager.Instance.Current;
 
-            if (!AuthManager.Instance.IsCurrent(session) || snapshot.ownerPlayerId != session.PlayerId || snapshot.accountApiRoot != session.ApiRoot)
+            if (!AuthManager.Instance.IsCurrent(account_session) || snapshot.ownerPlayerId != account_session.PlayerId || snapshot.accountApiRoot != account_session.ApiRoot)
             {
                 Fail("Sign in with the account that started this run.");
                 return;
             }
 
             RunId = snapshot.runId;
-            payload = JsonUtility.ToJson(snapshot);
-            lifetime = new CancellationTokenSource();
+            request_json = JsonUtility.ToJson(snapshot);
+            cts_request = new CancellationTokenSource();
             Retry();
         }
 
         public void Retry()
         {
-            if (IsBusy || Succeeded || string.IsNullOrEmpty(payload))
+            if (IsBusy || Succeeded || string.IsNullOrEmpty(request_json))
             {
                 return;
             }
 
-            if (!AuthManager.Instance.IsCurrent(session))
+            if (!AuthManager.Instance.IsCurrent(account_session))
             {
                 Fail("Please sign in again.");
                 return;
@@ -54,7 +54,7 @@ namespace Zpd.Gameplay
             IsBusy = true;
             Status = "GAME LOG: SAVING...";
             Changed?.Invoke();
-            _ = SendAsync(lifetime);
+            _ = SendAsync(cts_request);
         }
 
         private async Task SendAsync(CancellationTokenSource attempt)
@@ -63,10 +63,10 @@ namespace Zpd.Gameplay
 
             try
             {
-                var api = AuthManager.Instance.CreateClient(session, timeoutSeconds: 5);
+                var api = AuthManager.Instance.CreateClient(account_session, timeoutSeconds: 5);
                 var result = await api.PostJsonAsync<GameResultResponse>(
                     "/me/game-results",
-                    payload,
+                    request_json,
                     token,
                     authenticated: true,
                     operationId: RunId + ":game-result");
@@ -115,19 +115,19 @@ namespace Zpd.Gameplay
 
         public void Cancel()
         {
-            lifetime?.Cancel();
-            lifetime?.Dispose();
-            lifetime = null;
+            cts_request?.Cancel();
+            cts_request?.Dispose();
+            cts_request = null;
             IsBusy = false;
             Succeeded = false;
-            payload = null;
+            request_json = null;
             RunId = null;
-            session = null;
+            account_session = null;
         }
 
         private void AccountChanged()
         {
-            if (payload == null)
+            if (request_json == null)
             {
                 return;
             }

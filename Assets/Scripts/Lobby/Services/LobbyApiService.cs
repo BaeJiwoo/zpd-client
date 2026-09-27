@@ -9,16 +9,16 @@ namespace Zpd.Lobby
     /// <summary>Maps typed HTTP results to the lobby's existing service contract.</summary>
     public sealed class LobbyApiService : ILobbyService
     {
-        private readonly ApiClient _api;
+        private readonly ApiClient api_client;
 
         public LobbyApiService(AccountSession authenticatedSession, int timeoutSeconds = 15)
         {
-            _api = AuthManager.Instance.CreateClient(authenticatedSession, timeoutSeconds);
+            api_client = AuthManager.Instance.CreateClient(authenticatedSession, timeoutSeconds);
         }
 
         public async Task<LobbyProfileData> GetProfileAsync(CancellationToken cancellation)
         {
-            var result = await _api.GetAsync<ProfileEnvelope>("/me", cancellation, authenticated: true);
+            var result = await api_client.GetAsync<ProfileEnvelope>("/me", cancellation, authenticated: true);
 
             if (!result.IsSuccess)
             {
@@ -30,7 +30,7 @@ namespace Zpd.Lobby
 
         public async Task<LobbyInventoryData> GetInventoryAsync(CancellationToken cancellation)
         {
-            var result = await _api.GetAsync<InventoryEnvelope>("/me/inventory", cancellation, authenticated: true);
+            var result = await api_client.GetAsync<InventoryEnvelope>("/me/inventory", cancellation, authenticated: true);
 
             if (!result.IsSuccess)
             {
@@ -51,7 +51,7 @@ namespace Zpd.Lobby
             }
 
             string path = "/me/inventory/" + Uri.EscapeDataString(itemId) + "/use";
-            var result = await _api.PostAsync<UseRequest, UseEnvelope>(
+            var result = await api_client.PostAsync<UseRequest, UseEnvelope>(
                 path,
                 new UseRequest { quantity = 1 },
                 cancellation,

@@ -48,7 +48,7 @@ public static class LoginChecks
     }
     static Task SignIn(LoginController login)
     {
-        login.View.password.text = AuthTestServer.Password;
+        login.View.input_password.text = AuthTestServer.Password;
         return login.LoginAsync();
     }
     static async void Check()
@@ -68,30 +68,30 @@ public static class LoginChecks
             catch(ArgumentException) { count++; }
             using(var server=new AuthTestServer())
             {
-                var login=UnityEngine.Object.FindFirstObjectByType<LoginController>(); login.apiRoot=server.Root;
+                var login=UnityEngine.Object.FindFirstObjectByType<LoginController>(); login.api_root=server.Root;
                 Require(login.enabled && login.View.IsConfigured, "Authored controls recover missing serialized bindings at startup");
-                var expectedId = login.View.loginId;
-                var expectedPassword = login.View.password;
-                login.View.loginId = null;
-                login.View.password = null;
-                Require(login.View.TryBindControls() && login.View.loginId == expectedId && login.View.password == expectedPassword,
+                var expectedId = login.View.input_login_id;
+                var expectedPassword = login.View.input_password;
+                login.View.input_login_id = null;
+                login.View.input_password = null;
+                Require(login.View.TryBindControls() && login.View.input_login_id == expectedId && login.View.input_password == expectedPassword,
                     "Missing bindings resolve to the correct existing controls");
                 string originalName = expectedId.name;
                 expectedId.name = "Custom ID";
-                Require(login.View.TryBindControls() && login.View.loginId == expectedId,
+                Require(login.View.TryBindControls() && login.View.input_login_id == expectedId,
                     "Recovery preserves explicitly assigned custom controls");
                 expectedId.name = originalName;
-                login.View.loginId.text=" "; await SignIn(login);
+                login.View.input_login_id.text=" "; await SignIn(login);
                 Require(server.Requests.IsEmpty && !AuthManager.Instance.IsSignedIn,"Invalid input never calls API");
-                login.View.loginId.text="player-0007";
-                login.View.password.text=""; await login.LoginAsync();
+                login.View.input_login_id.text="player-0007";
+                login.View.input_password.text=""; await login.LoginAsync();
                 Require(server.Requests.IsEmpty, "Empty password never calls the API");
-                Require(login.View.password.contentType == UnityEngine.UI.InputField.ContentType.Password, "Password input is masked");
-                login.View.password.text="incorrect"; await login.LoginAsync();
-                Require(!AuthManager.Instance.IsSignedIn && login.View.status.text == "Invalid ID or password.", "Invalid credentials have a clear message");
-                Require(login.View.password.text == "", "Submitted password is cleared");
+                Require(login.View.input_password.contentType == UnityEngine.UI.InputField.ContentType.Password, "Password input is masked");
+                login.View.input_password.text="incorrect"; await login.LoginAsync();
+                Require(!AuthManager.Instance.IsSignedIn && login.View.txt_status.text == "Invalid ID or password.", "Invalid credentials have a clear message");
+                Require(login.View.input_password.text == "", "Submitted password is cleared");
                 server.LoginStatus=401; await SignIn(login);
-                Require(!AuthManager.Instance.IsSignedIn && login.View.loginId.interactable,"Rejected login remains editable");
+                Require(!AuthManager.Instance.IsSignedIn && login.View.input_login_id.interactable,"Rejected login remains editable");
                 server.LoginStatus=200; server.LoginBody="{\"data\":{\"playerId\":\"player-0007\"}}"; await SignIn(login);
                 Require(!AuthManager.Instance.IsSignedIn,"Missing credentials rejected");
                 server.LoginBody="{\"data\":{\"playerId\":\" \",\"accessToken\":\"token\",\"expiresAtUtc\":\""+DateTime.UtcNow.AddHours(1).ToString("O")+"\"}}";
@@ -101,7 +101,7 @@ public static class LoginChecks
                 server.LoginBody=null; server.LoginDelay=150;
                 int before=server.Requests.Count;
                 var entering=SignIn(login); await SignIn(login);
-                Require(login.IsBusy && !login.View.login.interactable,"Duplicate submission disabled while waiting");
+                Require(login.IsBusy && !login.View.btn_login.interactable,"Duplicate submission disabled while waiting");
                 await entering;
                 await Until(()=>UnityEngine.Object.FindFirstObjectByType<LobbyController>()?.Model.Profile!=null);
                 var session=AuthManager.Instance.Current;
@@ -131,12 +131,12 @@ public static class LoginChecks
                 var lobby=UnityEngine.Object.FindFirstObjectByType<LobbyController>(); lobby.ChangePlayer();
                 await Until(()=>UnityEngine.Object.FindFirstObjectByType<LoginController>()!=null);
                 Require(!AuthManager.Instance.IsSignedIn,"Logout clears shared session");
-                login=UnityEngine.Object.FindFirstObjectByType<LoginController>(); login.apiRoot=server.Root;
-                login.View.loginId.text="other-player";
+                login=UnityEngine.Object.FindFirstObjectByType<LoginController>(); login.api_root=server.Root;
+                login.View.input_login_id.text="other-player";
                 var pending=SignIn(login); login.enabled=false; await pending;
                 Require(!AuthManager.Instance.IsSignedIn,"Disabled login ignores late response");
                 login.enabled=true;
-                Require(login.View.loginId.interactable && login.View.password.interactable && login.View.login.interactable,
+                Require(login.View.input_login_id.interactable && login.View.input_password.interactable && login.View.btn_login.interactable,
                     "Re-enabling a cancelled screen restores its input controls");
                 await SignIn(login);
                 await Until(()=>UnityEngine.Object.FindFirstObjectByType<LobbyController>()?.Model.Profile!=null);

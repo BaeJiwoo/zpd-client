@@ -8,18 +8,18 @@ namespace Zpd.Networking
 {
     public sealed class TcpTransport : IDisposable
     {
-        private readonly TcpClient m_client = new TcpClient();
-        private NetworkStream m_stream;
+        private readonly TcpClient tcp_client = new TcpClient();
+        private NetworkStream network_stream;
 
         public async Task ConnectAsync(string host, int port, CancellationToken cancellationToken)
         {
             using (cancellationToken.Register(Dispose))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await m_client.ConnectAsync(host, port).ConfigureAwait(false);
+                await tcp_client.ConnectAsync(host, port).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
-                m_client.NoDelay = true;
-                m_stream = m_client.GetStream();
+                tcp_client.NoDelay = true;
+                network_stream = tcp_client.GetStream();
             }
         }
 
@@ -29,7 +29,7 @@ namespace Zpd.Networking
 
             while (offset < buffer.Length)
             {
-                int received = await m_stream.ReadAsync(buffer, offset, buffer.Length - offset, cancellationToken).ConfigureAwait(false);
+                int received = await network_stream.ReadAsync(buffer, offset, buffer.Length - offset, cancellationToken).ConfigureAwait(false);
 
                 if (received == 0)
                 {
@@ -49,12 +49,12 @@ namespace Zpd.Networking
 
         public Task WriteAsync(byte[] bytes, CancellationToken cancellationToken)
         {
-            return m_stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken);
+            return network_stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken);
         }
 
         public void Dispose()
         {
-            m_client.Dispose();
+            tcp_client.Dispose();
         }
     }
 }

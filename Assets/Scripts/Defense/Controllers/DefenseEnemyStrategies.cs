@@ -51,7 +51,7 @@ namespace Zpd.Defense
 
         public bool Execute(IDefenseEnemyCombat combat, DefenseGame.EnemySlot enemy)
         {
-            combat.ApplyEnemyDamage(enemy.targetingPlayer, (enemy.targetingPlayer ? 10 : 5) + enemy.level * 2);
+            combat.ApplyEnemyDamage(enemy.is_targeting_player, (enemy.is_targeting_player ? 10 : 5) + enemy.threat_level * 2);
             return true;
         }
     }
@@ -68,13 +68,13 @@ namespace Zpd.Defense
 
     public sealed class DefenseEnemyBehavior
     {
-        public readonly IEnemyTargetStrategy Target;
-        public readonly IEnemyAttackStrategy Attack;
-        public readonly float MoveSpeed;
-        public readonly int BonusHealth;
-        public readonly Color MarkerColor;
-        public readonly Vector3 MarkerScale;
-        public readonly float MarkerAngle;
+        public readonly IEnemyTargetStrategy target_strategy;
+        public readonly IEnemyAttackStrategy attack_strategy;
+        public readonly float move_speed;
+        public readonly int bonus_health;
+        public readonly Color marker_color;
+        public readonly Vector3 marker_scale;
+        public readonly float marker_angle_degrees;
 
         public DefenseEnemyBehavior(
             IEnemyTargetStrategy target,
@@ -85,37 +85,37 @@ namespace Zpd.Defense
             Vector3 scale,
             float angle)
         {
-            Target = target;
-            Attack = attack;
-            MoveSpeed = speed;
-            BonusHealth = health;
-            MarkerColor = color;
-            MarkerScale = scale;
-            MarkerAngle = angle;
+            target_strategy = target;
+            attack_strategy = attack;
+            move_speed = speed;
+            bonus_health = health;
+            marker_color = color;
+            marker_scale = scale;
+            marker_angle_degrees = angle;
         }
     }
 
     /// <summary>Flyweight factory composes independent targeting and attack strategies without per-frame allocations.</summary>
     public static class DefenseEnemyFactory
     {
-        private static readonly IEnemyAttackStrategy Melee = new MeleeAttackStrategy();
-        private static readonly DefenseEnemyBehavior Hunter = new DefenseEnemyBehavior(
+        private static readonly IEnemyAttackStrategy attack_melee = new MeleeAttackStrategy();
+        private static readonly DefenseEnemyBehavior behavior_hunter = new DefenseEnemyBehavior(
             new NearbyPlayerTarget(),
-            Melee,
+            attack_melee,
             1.4f,
             1,
             new Color(0.5f, 0.9f, 1),
             new Vector3(4, 1, 1),
             0);
-        private static readonly DefenseEnemyBehavior Siege = new DefenseEnemyBehavior(
+        private static readonly DefenseEnemyBehavior behavior_siege = new DefenseEnemyBehavior(
             new BeaconTarget(),
-            Melee,
+            attack_melee,
             1.05f,
             3,
             new Color(1, 0.6f, 0.1f),
             new Vector3(3, 3, 1),
             45);
-        private static readonly DefenseEnemyBehavior Shooter = new DefenseEnemyBehavior(
+        private static readonly DefenseEnemyBehavior behavior_shooter = new DefenseEnemyBehavior(
             new PlayerTarget(),
             new ProjectileAttackStrategy(),
             1.1f,
@@ -125,7 +125,7 @@ namespace Zpd.Defense
             0);
 
         public static DefenseEnemyBehavior For(DefenseEnemyRole role) => role == DefenseEnemyRole.Siege
-            ? Siege
-            : role == DefenseEnemyRole.Shooter ? Shooter : Hunter;
+            ? behavior_siege
+            : role == DefenseEnemyRole.Shooter ? behavior_shooter : behavior_hunter;
     }
 }

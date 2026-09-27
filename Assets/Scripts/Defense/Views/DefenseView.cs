@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -7,56 +8,103 @@ namespace Zpd.Defense
     /// <summary>Scene-authored UI bindings and presentation. Does not change game state.</summary>
     public sealed class DefenseView : MonoBehaviour
     {
-        public GameObject readyPanel;
-        public GameObject pausePanel;
-        public GameObject helpPanel;
-        public Button helpButton;
-        public Button helpBackButton;
-        public GameObject resultPanel;
-        public Text healthText;
-        public Text waveText;
-        public Text scoreText;
-        public Text hintText;
-        public Text resultStats;
-        public Button startButton;
-        public Button resumeButton;
-        public Button restartButton;
-        public SpriteRenderer[] entryMarkers = new SpriteRenderer[0];
-        public Image beaconHealthBar;
-        public Image dashBar;
-        public Text dashText;
-        public Button nextWaveButton;
-        public Text rewardTitle, rewardDetail, uploadStatus;
-        public Button retryButton;
+        [FormerlySerializedAs("readyPanel")]
+        public GameObject game_object_ready_panel;
+
+        [FormerlySerializedAs("pausePanel")]
+        public GameObject game_object_pause_panel;
+
+        [FormerlySerializedAs("helpPanel")]
+        public GameObject game_object_help_panel;
+
+        [FormerlySerializedAs("helpButton")]
+        public Button btn_help;
+
+        [FormerlySerializedAs("helpBackButton")]
+        public Button btn_help_back;
+
+        [FormerlySerializedAs("resultPanel")]
+        public GameObject game_object_result_panel;
+
+        [FormerlySerializedAs("healthText")]
+        public Text txt_health;
+
+        [FormerlySerializedAs("waveText")]
+        public Text txt_wave;
+
+        [FormerlySerializedAs("scoreText")]
+        public Text txt_score;
+
+        [FormerlySerializedAs("hintText")]
+        public Text txt_hint;
+
+        [FormerlySerializedAs("resultStats")]
+        public Text txt_result_stats;
+
+        [FormerlySerializedAs("startButton")]
+        public Button btn_start;
+
+        [FormerlySerializedAs("resumeButton")]
+        public Button btn_resume;
+
+        [FormerlySerializedAs("restartButton")]
+        public Button btn_restart;
+
+        [FormerlySerializedAs("entryMarkers")]
+        public SpriteRenderer[] sprite_renderer_entry_markers = new SpriteRenderer[0];
+
+        [FormerlySerializedAs("beaconHealthBar")]
+        public Image img_beacon_health_bar;
+
+        [FormerlySerializedAs("dashBar")]
+        public Image img_dash_bar;
+
+        [FormerlySerializedAs("dashText")]
+        public Text txt_dash;
+
+        [FormerlySerializedAs("nextWaveButton")]
+        public Button btn_next_wave;
+
+        [FormerlySerializedAs("rewardTitle")]
+        public Text txt_reward_title;
+
+        [FormerlySerializedAs("rewardDetail")]
+        public Text txt_reward_detail;
+
+        [FormerlySerializedAs("uploadStatus")]
+        public Text txt_upload_status;
+
+        [FormerlySerializedAs("retryButton")]
+        public Button btn_retry;
 
         public void ShowState(DefenseState state)
         {
-            readyPanel.SetActive(state == DefenseState.Ready);
-            pausePanel.SetActive(state == DefenseState.Paused);
-            resultPanel.SetActive(state == DefenseState.Ended);
-            helpPanel.SetActive(false);
+            game_object_ready_panel.SetActive(state == DefenseState.Ready);
+            game_object_pause_panel.SetActive(state == DefenseState.Paused);
+            game_object_result_panel.SetActive(state == DefenseState.Ended);
+            game_object_help_panel.SetActive(false);
         }
 
         public void ShowHelp(bool show)
         {
-            helpPanel.SetActive(show);
-            pausePanel.SetActive(!show);
-            Select(show ? helpBackButton : helpButton);
+            game_object_help_panel.SetActive(show);
+            game_object_pause_panel.SetActive(!show);
+            Select(show ? btn_help_back : btn_help);
         }
 
         public void ShowResult(DefenseModel model, string reason)
         {
             ShowState(DefenseState.Ended);
-            resultStats.text = (reason == "death" ? "YOU WERE DEFEATED" : "THE BEACON WAS DESTROYED") + "\n" + model.Kills + " KILLS   /   WAVE " + model.Wave + "   /   " + Mathf.FloorToInt(model.Elapsed) + " SECONDS";
-            Select(restartButton);
+            txt_result_stats.text = (reason == "death" ? "YOU WERE DEFEATED" : "THE BEACON WAS DESTROYED") + "\n" + model.Kills + " KILLS   /   WAVE " + model.Wave + "   /   " + Mathf.FloorToInt(model.Elapsed) + " SECONDS";
+            Select(btn_restart);
         }
 
         public void RenderRequests(string title, string detail, string upload, bool canRetry)
         {
-            rewardTitle.text = title;
-            rewardDetail.text = detail;
-            uploadStatus.text = upload;
-            retryButton.interactable = canRetry;
+            txt_reward_title.text = title;
+            txt_reward_detail.text = detail;
+            txt_upload_status.text = upload;
+            btn_retry.interactable = canRetry;
         }
 
         public static void Select(Button button)
@@ -69,10 +117,10 @@ namespace Zpd.Defense
 
         public void RenderHud(DefenseModel model, int aliveCount, int threat, bool awaitingCard)
         {
-            healthText.text = "YOU " + model.PlayerHealth + " / 100     BEACON " + model.BeaconHealth + " / 100";
-            waveText.text = "WAVE " + model.Wave + "   ENEMIES " + aliveCount + " / INCOMING " + model.Remaining;
-            scoreText.text = Mathf.FloorToInt(model.Elapsed) + "s   /   THREAT " + Mathf.Max(1, threat);
-            hintText.text = model.State == DefenseState.Ready
+            txt_health.text = "YOU " + model.PlayerHealth + " / 100     BEACON " + model.BeaconHealth + " / 100";
+            txt_wave.text = "WAVE " + model.Wave + "   ENEMIES " + aliveCount + " / INCOMING " + model.Remaining;
+            txt_score.text = Mathf.FloorToInt(model.Elapsed) + "s   /   THREAT " + Mathf.Max(1, threat);
+            txt_hint.text = model.State == DefenseState.Ready
                 ? ""
                 : model.Phase == DefensePhase.Preparation
                 ? awaitingCard
@@ -82,29 +130,29 @@ namespace Zpd.Defense
                 ? "Incoming in " + Mathf.CeilToInt(model.PhaseRemaining) + "s"
                 : "";
 
-            if (beaconHealthBar != null)
+            if (img_beacon_health_bar != null)
             {
-                beaconHealthBar.fillAmount = model.BeaconHealth / 100f;
-                beaconHealthBar.color = model.BeaconHealth <= 30
+                img_beacon_health_bar.fillAmount = model.BeaconHealth / 100f;
+                img_beacon_health_bar.color = model.BeaconHealth <= 30
                     ? new Color(1, 0.3f, 0.25f)
                     : new Color(0.35f, 0.9f, 0.75f);
             }
 
-            if (dashBar != null)
+            if (img_dash_bar != null)
             {
-                dashBar.fillAmount = model.DashReady;
+                img_dash_bar.fillAmount = model.DashReady;
             }
 
-            if (dashText != null)
+            if (txt_dash != null)
             {
-                dashText.text = model.DashReady >= 1
+                txt_dash.text = model.DashReady >= 1
                     ? "DASH READY"
                     : "DASH " + Mathf.Max(0, model.NextDash - model.Elapsed).ToString("0.0") + "s";
             }
 
-            if (nextWaveButton != null)
+            if (btn_next_wave != null)
             {
-                nextWaveButton.gameObject.SetActive(
+                btn_next_wave.gameObject.SetActive(
                     model.State == DefenseState.Playing && model.Phase == DefensePhase.Preparation);
             }
         }
@@ -113,9 +161,9 @@ namespace Zpd.Defense
         {
             bool playing = model.State == DefenseState.Playing;
 
-            for (int i = 0; i < entryMarkers.Length; i++)
+            for (int i = 0; i < sprite_renderer_entry_markers.Length; i++)
             {
-                var marker = entryMarkers[i];
+                var marker = sprite_renderer_entry_markers[i];
 
                 if (marker == null)
                 {
@@ -142,57 +190,57 @@ namespace Zpd.Defense
 
             foreach (var enemy in enemies)
             {
-                bool active = enemy.root.gameObject.activeSelf;
+                bool active = enemy.transform_root.gameObject.activeSelf;
                 var behavior = DefenseEnemyFactory.For(enemy.role);
 
-                if (enemy.roleMarker != null)
+                if (enemy.sprite_renderer_role_marker != null)
                 {
-                    enemy.roleMarker.enabled = active;
-                    enemy.roleMarker.color = behavior.MarkerColor;
-                    enemy.roleMarker.transform.localRotation = Quaternion.Euler(0, 0, behavior.MarkerAngle);
-                    enemy.roleMarker.transform.localScale = behavior.MarkerScale;
+                    enemy.sprite_renderer_role_marker.enabled = active;
+                    enemy.sprite_renderer_role_marker.color = behavior.marker_color;
+                    enemy.sprite_renderer_role_marker.transform.localRotation = Quaternion.Euler(0, 0, behavior.marker_angle_degrees);
+                    enemy.sprite_renderer_role_marker.transform.localScale = behavior.marker_scale;
                 }
 
-                if (enemy.attackMarker != null)
+                if (enemy.sprite_renderer_attack_marker != null)
                 {
-                    enemy.attackMarker.enabled = active && enemy.windup > 0;
-                    enemy.attackMarker.color = new Color(1, 0.15f, 0.1f);
-                    enemy.attackMarker.transform.localScale = new Vector3(
-                        8 * Mathf.Clamp01(enemy.windup / behavior.Attack.WindupSeconds),
+                    enemy.sprite_renderer_attack_marker.enabled = active && enemy.attack_windup_elapsed_seconds > 0;
+                    enemy.sprite_renderer_attack_marker.color = new Color(1, 0.15f, 0.1f);
+                    enemy.sprite_renderer_attack_marker.transform.localScale = new Vector3(
+                        8 * Mathf.Clamp01(enemy.attack_windup_elapsed_seconds / behavior.attack_strategy.WindupSeconds),
                         1,
                         1);
                 }
 
-                if (enemy.aimMarker != null)
+                if (enemy.sprite_renderer_aim_marker != null)
                 {
-                    enemy.aimMarker.enabled = active && enemy.windup > 0 && behavior.Attack.IsRanged;
-                    enemy.aimMarker.color = new Color(1, 0.2f, 0.65f, 0.4f);
-                    float length = behavior.Attack.Range;
-                    enemy.aimMarker.transform.localPosition = enemy.aimDirection * length * 0.5f;
-                    enemy.aimMarker.transform.localRotation = Quaternion.Euler(
+                    enemy.sprite_renderer_aim_marker.enabled = active && enemy.attack_windup_elapsed_seconds > 0 && behavior.attack_strategy.IsRanged;
+                    enemy.sprite_renderer_aim_marker.color = new Color(1, 0.2f, 0.65f, 0.4f);
+                    float length = behavior.attack_strategy.Range;
+                    enemy.sprite_renderer_aim_marker.transform.localPosition = enemy.aim_direction * length * 0.5f;
+                    enemy.sprite_renderer_aim_marker.transform.localRotation = Quaternion.Euler(
                         0,
                         0,
-                        Mathf.Atan2(enemy.aimDirection.y, enemy.aimDirection.x) * Mathf.Rad2Deg);
-                    enemy.aimMarker.transform.localScale = new Vector3(
-                        length / enemy.aimMarker.sprite.bounds.size.x,
-                        0.045f / enemy.aimMarker.sprite.bounds.size.y,
+                        Mathf.Atan2(enemy.aim_direction.y, enemy.aim_direction.x) * Mathf.Rad2Deg);
+                    enemy.sprite_renderer_aim_marker.transform.localScale = new Vector3(
+                        length / enemy.sprite_renderer_aim_marker.sprite.bounds.size.x,
+                        0.045f / enemy.sprite_renderer_aim_marker.sprite.bounds.size.y,
                         1);
                 }
 
-                if (enemy.healthBar != null)
+                if (enemy.sprite_renderer_health_bar != null)
                 {
-                    enemy.healthBar.enabled = active && (enemy.role != DefenseEnemyRole.Hunter || model.Elapsed < enemy.showHealthUntil);
-                    enemy.healthBar.color = new Color(0.4f, 1, 0.5f);
-                    enemy.healthBar.transform.localScale = new Vector3(
-                        8 * Mathf.Clamp01((float)enemy.health / Mathf.Max(1, enemy.maxHealth)),
+                    enemy.sprite_renderer_health_bar.enabled = active && (enemy.role != DefenseEnemyRole.Hunter || model.Elapsed < enemy.health_visible_until_seconds);
+                    enemy.sprite_renderer_health_bar.color = new Color(0.4f, 1, 0.5f);
+                    enemy.sprite_renderer_health_bar.transform.localScale = new Vector3(
+                        8 * Mathf.Clamp01((float)enemy.health / Mathf.Max(1, enemy.max_health)),
                         0.7f,
                         1);
                 }
             }
 
-            if (nextWaveButton != null)
+            if (btn_next_wave != null)
             {
-                nextWaveButton.gameObject.SetActive(playing && model.Phase == DefensePhase.Preparation);
+                btn_next_wave.gameObject.SetActive(playing && model.Phase == DefensePhase.Preparation);
             }
         }
     }

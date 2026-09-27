@@ -6,7 +6,7 @@ namespace Zpd.Development
 {
     public sealed class PacketHandler
     {
-        private readonly NetworkClient m_client;
+        private readonly NetworkClient network_client;
 
         public MatchmakingClient Matchmaking { get; }
 
@@ -14,7 +14,7 @@ namespace Zpd.Development
 
         public PacketHandler(NetworkClient client)
         {
-            m_client = client ?? throw new ArgumentNullException(nameof(client));
+            network_client = client ?? throw new ArgumentNullException(nameof(client));
             Matchmaking = new MatchmakingClient(client);
             Matchmaking.MessageReceived += message => MessageReceived?.Invoke(message);
         }
@@ -33,7 +33,7 @@ namespace Zpd.Development
                 throw new InvalidOperationException("Use the matching controls for reserved match messages.");
             }
 
-            uint requestId = m_client.SendRequest(code, payload);
+            uint requestId = network_client.SendRequest(code, payload);
             MessageReceived?.Invoke("Queued code=" + code + " requestId=" + requestId);
         }
 

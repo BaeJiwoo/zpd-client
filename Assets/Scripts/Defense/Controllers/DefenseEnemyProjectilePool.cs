@@ -1,18 +1,20 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Zpd.Defense
 {
     [Serializable]
     public sealed class DefenseEnemyProjectile
     {
-        public Transform root;
+        [FormerlySerializedAs("root")]
+        public Transform transform_root;
 
         [NonSerialized]
-        public Vector2 direction;
+        public Vector2 travel_direction;
 
         [NonSerialized]
-        public float life;
+        public float remaining_lifetime_seconds;
 
         [NonSerialized]
         public int damage;
@@ -22,11 +24,11 @@ namespace Zpd.Defense
     public sealed class DefenseEnemyProjectilePool
     {
         public const float Speed = 5.5f;
-        private readonly DefenseEnemyProjectile[] slots;
+        private readonly DefenseEnemyProjectile[] projectile_slots;
 
         public DefenseEnemyProjectilePool(DefenseEnemyProjectile[] slots)
         {
-            this.slots = slots;
+            this.projectile_slots = slots;
             Reset();
         }
 
@@ -37,19 +39,19 @@ namespace Zpd.Defense
                 return false;
             }
 
-            foreach (var slot in slots)
+            foreach (var slot in projectile_slots)
             {
-                if (slot.root.gameObject.activeSelf)
+                if (slot.transform_root.gameObject.activeSelf)
                 {
                     continue;
                 }
 
-                slot.direction = direction.normalized;
-                slot.root.position = origin;
-                slot.root.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
+                slot.travel_direction = direction.normalized;
+                slot.transform_root.position = origin;
+                slot.transform_root.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
                 slot.damage = damage;
-                slot.life = 4.5f;
-                slot.root.gameObject.SetActive(true);
+                slot.remaining_lifetime_seconds = 4.5f;
+                slot.transform_root.gameObject.SetActive(true);
                 return true;
             }
 
@@ -58,40 +60,40 @@ namespace Zpd.Defense
 
         public void Reset()
         {
-            foreach (var slot in slots)
+            foreach (var slot in projectile_slots)
             {
-                slot.life = 0;
-                slot.root.gameObject.SetActive(false);
+                slot.remaining_lifetime_seconds = 0;
+                slot.transform_root.gameObject.SetActive(false);
             }
         }
 
         public void Tick(float dt, Vector2 player, Vector2 beacon, Vector2 bounds, IDefenseEnemyCombat combat)
         {
-            foreach (var slot in slots)
+            foreach (var slot in projectile_slots)
             {
-                if (!slot.root.gameObject.activeSelf)
+                if (!slot.transform_root.gameObject.activeSelf)
                 {
                     continue;
                 }
 
-                Vector2 from = slot.root.position;
-                Vector2 to = from + slot.direction * Speed * Mathf.Min(dt, Mathf.Max(0, slot.life));
+                Vector2 from = slot.transform_root.position;
+                Vector2 to = from + slot.travel_direction * Speed * Mathf.Min(dt, Mathf.Max(0, slot.remaining_lifetime_seconds));
                 bool hitPlayer = DefenseCollision.SegmentCircle(from, to, player, 0.42f, out float playerTime);
                 bool hitBeacon = DefenseCollision.SegmentCircle(from, to, beacon, 0.7f, out float beaconTime);
-                slot.life -= dt;
+                slot.remaining_lifetime_seconds -= dt;
 
                 if (hitPlayer || hitBeacon)
                 {
                     combat.ApplyEnemyDamage(hitPlayer && (!hitBeacon || playerTime <= beaconTime), slot.damage);
-                    slot.root.gameObject.SetActive(false);
+                    slot.transform_root.gameObject.SetActive(false);
                 }
-                else if (slot.life <= 0 || Mathf.Abs(to.x) > bounds.x + 1 || Mathf.Abs(to.y) > bounds.y + 1)
+                else if (slot.remaining_lifetime_seconds <= 0 || Mathf.Abs(to.x) > bounds.x + 1 || Mathf.Abs(to.y) > bounds.y + 1)
                 {
-                    slot.root.gameObject.SetActive(false);
+                    slot.transform_root.gameObject.SetActive(false);
                 }
                 else
                 {
-                    slot.root.position = to;
+                    slot.transform_root.position = to;
                 }
             }
         }

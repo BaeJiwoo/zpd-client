@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Zpd.Lobby
@@ -13,26 +14,35 @@ namespace Zpd.Lobby
     /// <summary>A fixed, editor-authored row. Empty until a future service binds authoritative data.</summary>
     public sealed class LobbySocialSlot : MonoBehaviour
     {
-        public LobbySocialAction action;
-        public Text playerName;
-        public Text detail;
-        public Button actionButton;
-        public Text feedback;
-        private string targetUserId;
-        private string receiptId;
-        private bool allowed;
+        [FormerlySerializedAs("action")]
+        public LobbySocialAction social_action;
+
+        [FormerlySerializedAs("playerName")]
+        public Text txt_player_name;
+
+        [FormerlySerializedAs("detail")]
+        public Text txt_detail;
+
+        [FormerlySerializedAs("actionButton")]
+        public Button btn_action;
+
+        [FormerlySerializedAs("feedback")]
+        public Text txt_feedback;
+        private string target_user_id;
+        private string receipt_id;
+        private bool is_action_allowed;
 
         public void Clear()
         {
-            targetUserId = null;
-            receiptId = null;
-            allowed = false;
-            playerName.text = "--";
-            detail.text = action == LobbySocialAction.ReceiveHeart ? "Sender / received time: --" : "Player data: --";
+            target_user_id = null;
+            receipt_id = null;
+            is_action_allowed = false;
+            txt_player_name.text = "--";
+            txt_detail.text = social_action == LobbySocialAction.ReceiveHeart ? "Sender / received time: --" : "Player data: --";
 
-            if (actionButton != null)
+            if (btn_action != null)
             {
-                actionButton.interactable = false;
+                btn_action.interactable = false;
             }
         }
 
@@ -52,15 +62,15 @@ namespace Zpd.Lobby
                 return;
             }
 
-            targetUserId = userId;
-            receiptId = heartReceiptId;
-            playerName.text = displayName;
-            detail.text = detailText;
-            allowed = canAct && (action != LobbySocialAction.ReceiveHeart || !string.IsNullOrWhiteSpace(receiptId));
+            target_user_id = userId;
+            receipt_id = heartReceiptId;
+            txt_player_name.text = displayName;
+            txt_detail.text = detailText;
+            is_action_allowed = canAct && (social_action != LobbySocialAction.ReceiveHeart || !string.IsNullOrWhiteSpace(receipt_id));
 
-            if (actionButton != null)
+            if (btn_action != null)
             {
-                actionButton.interactable = allowed && action == LobbySocialAction.SendFriendRequest;
+                btn_action.interactable = is_action_allowed && social_action == LobbySocialAction.SendFriendRequest;
             }
         }
 
@@ -68,20 +78,20 @@ namespace Zpd.Lobby
         {
             // Heart rows are informational. Automation consumes the complete service eligibility list.
 
-            if (action != LobbySocialAction.SendFriendRequest)
+            if (social_action != LobbySocialAction.SendFriendRequest)
             {
                 return;
             }
 
-            if (!allowed || string.IsNullOrWhiteSpace(targetUserId))
+            if (!is_action_allowed || string.IsNullOrWhiteSpace(target_user_id))
             {
-                feedback.text = "Player data and eligibility are not available yet.";
+                txt_feedback.text = "Player data and eligibility are not available yet.";
                 return;
             }
 
             Debug.Log(
-                "[Lobby API stub] friends.request.send targetUserId=" + targetUserId + " (log only; no request sent)");
-            feedback.text = "Service not connected. Nothing was sent or received.";
+                "[Lobby API stub] friends.request.send targetUserId=" + target_user_id + " (log only; no request sent)");
+            txt_feedback.text = "Service not connected. Nothing was sent or received.";
             // Never change relationship, eligibility, inbox or heart balance without a server response.
         }
     }

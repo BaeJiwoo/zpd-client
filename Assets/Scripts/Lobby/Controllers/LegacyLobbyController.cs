@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -10,25 +11,26 @@ namespace Zpd.Lobby
     [RequireComponent(typeof(LegacyLobbyView))]
     public sealed class LegacyLobbyController : MonoBehaviour
     {
-        private LegacyLobbyView view;
+        private LegacyLobbyView legacy_lobby_view;
 
-        public LegacyLobbyView View => view != null ? view : (view = GetComponent<LegacyLobbyView>());
+        public LegacyLobbyView View => legacy_lobby_view != null ? legacy_lobby_view : (legacy_lobby_view = GetComponent<LegacyLobbyView>());
 
-        public LobbyPanel profile { get => View.profile; set => View.profile = value; }
-        public LobbyPanel friends { get => View.friends; set => View.friends = value; }
-        public LobbyPanel inventory { get => View.inventory; set => View.inventory = value; }
-        public LobbyPanel characters { get => View.characters; set => View.characters = value; }
-        public LobbyCharacterPicker characterPicker { get => View.characterPicker; set => View.characterPicker = value; }
-        public GameObject backdrop { get => View.backdrop; set => View.backdrop = value; }
-        public GameObject[] friendPages { get => View.friendPages; set => View.friendPages = value; }
-        public Button[] friendTabs { get => View.friendTabs; set => View.friendTabs = value; }
-        public InputField searchInput { get => View.searchInput; set => View.searchInput = value; }
-        public Text searchStatus { get => View.searchStatus; set => View.searchStatus = value; }
-        public Text status { get => View.status; set => View.status = value; }
-        public Text itemDetails { get => View.itemDetails; set => View.itemDetails = value; }
-        public Text socialStatus { get => View.socialStatus; set => View.socialStatus = value; }
+        public LobbyPanel lobby_panel_profile { get => View.lobby_panel_profile; set => View.lobby_panel_profile = value; }
+        public LobbyPanel lobby_panel_friends { get => View.lobby_panel_friends; set => View.lobby_panel_friends = value; }
+        public LobbyPanel lobby_panel_inventory { get => View.lobby_panel_inventory; set => View.lobby_panel_inventory = value; }
+        public LobbyPanel lobby_panel_characters { get => View.lobby_panel_characters; set => View.lobby_panel_characters = value; }
+        public LobbyCharacterPicker lobby_character_picker { get => View.lobby_character_picker; set => View.lobby_character_picker = value; }
+        public GameObject game_object_backdrop { get => View.game_object_backdrop; set => View.game_object_backdrop = value; }
+        public GameObject[] game_object_friend_pages { get => View.game_object_friend_pages; set => View.game_object_friend_pages = value; }
+        public Button[] btn_friend_tabs { get => View.btn_friend_tabs; set => View.btn_friend_tabs = value; }
+        public InputField input_search { get => View.input_search; set => View.input_search = value; }
+        public Text txt_search_status { get => View.txt_search_status; set => View.txt_search_status = value; }
+        public Text txt_status { get => View.txt_status; set => View.txt_status = value; }
+        public Text txt_item_details { get => View.txt_item_details; set => View.txt_item_details = value; }
+        public Text txt_social_status { get => View.txt_social_status; set => View.txt_social_status = value; }
 
-        public LobbyHeartAutomation heartAutomation;
+        [FormerlySerializedAs("heartAutomation")]
+        public LobbyHeartAutomation lobby_heart_automation;
 
         public LegacyLobbyModel Model { get; } = new LegacyLobbyModel();
 
@@ -36,7 +38,7 @@ namespace Zpd.Lobby
         {
             View.Initialize();
             SetFriendPage(0);
-            heartAutomation.ResetForAccount();
+            lobby_heart_automation.ResetForAccount();
         }
 
         private void Update()
@@ -54,7 +56,7 @@ namespace Zpd.Lobby
 
             if (previous == LobbySection.Friends && Model.Section != LobbySection.Friends)
             {
-                heartAutomation.CloseWindow();
+                lobby_heart_automation.CloseWindow();
             }
 
             View.ShowSection(Model.Section);
@@ -64,7 +66,7 @@ namespace Zpd.Lobby
         {
             if (Model.Section == LobbySection.Friends)
             {
-                heartAutomation.CloseWindow();
+                lobby_heart_automation.CloseWindow();
             }
 
             Model.Close();
@@ -87,7 +89,7 @@ namespace Zpd.Lobby
             }
 
             ShowMyFriends();
-            heartAutomation.OpenWindow();
+            lobby_heart_automation.OpenWindow();
         }
 
         public void OpenInventory()
@@ -119,7 +121,7 @@ namespace Zpd.Lobby
             }
 
             Model.IsNavigating = true;
-            heartAutomation.CloseWindow();
+            lobby_heart_automation.CloseWindow();
 
             if (!Zpd.Gameplay.SceneNavigation.Load(Zpd.Gameplay.SceneNavigation.SoloDefense))
             {
@@ -167,7 +169,7 @@ namespace Zpd.Lobby
                     break;
             }
 
-            heartAutomation.Refresh();
+            lobby_heart_automation.Refresh();
         }
 
         private void SetFriendPage(int index)

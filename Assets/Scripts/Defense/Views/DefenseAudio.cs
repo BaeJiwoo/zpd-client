@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Zpd.Defense
 {
@@ -20,31 +21,36 @@ namespace Zpd.Defense
     /// <summary>Plays editor-authored WAV assets on pre-placed sources; no runtime audio object creation.</summary>
     public sealed class DefenseAudio : MonoBehaviour
     {
-        public AudioSource combat;
-        public AudioSource feedback;
-        public AudioClip[] clips;
+        [FormerlySerializedAs("combat")]
+        public AudioSource audio_source_combat;
+
+        [FormerlySerializedAs("feedback")]
+        public AudioSource audio_source_feedback;
+
+        [FormerlySerializedAs("clips")]
+        public AudioClip[] audio_clip_cues;
 
         [Range(0, 1)]
         public float volume = 0.65f;
 
         public bool Muted { get; private set; }
 
-        private readonly float[] nextAllowed = new float[11];
+        private readonly float[] next_cue_at_seconds = new float[11];
 
         public void Play(DefenseCue cue)
         {
             int index = (int)cue;
 
-            if (Muted || index >= clips.Length || clips[index] == null || Time.unscaledTime < nextAllowed[index])
+            if (Muted || index >= audio_clip_cues.Length || audio_clip_cues[index] == null || Time.unscaledTime < next_cue_at_seconds[index])
             {
                 return;
             }
 
-            nextAllowed[index] = Time.unscaledTime + (cue == DefenseCue.Hit || cue == DefenseCue.Kill ? 0.075f : 0.035f);
+            next_cue_at_seconds[index] = Time.unscaledTime + (cue == DefenseCue.Hit || cue == DefenseCue.Kill ? 0.075f : 0.035f);
             var source = cue == DefenseCue.Shot || cue == DefenseCue.Scatter || cue == DefenseCue.Hit
-                ? combat
-                : feedback;
-            source.PlayOneShot(clips[index], volume * (cue == DefenseCue.Hit ? 0.35f : 0.75f));
+                ? audio_source_combat
+                : audio_source_feedback;
+            source.PlayOneShot(audio_clip_cues[index], volume * (cue == DefenseCue.Hit ? 0.35f : 0.75f));
         }
 
         public void ToggleMute()
@@ -59,8 +65,8 @@ namespace Zpd.Defense
 
         public void Stop()
         {
-            combat.Stop();
-            feedback.Stop();
+            audio_source_combat.Stop();
+            audio_source_feedback.Stop();
         }
     }
 }

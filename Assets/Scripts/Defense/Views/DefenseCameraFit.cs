@@ -1,31 +1,37 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Zpd.Defense
 {
     [RequireComponent(typeof(Camera))]
     public sealed class DefenseCameraFit : MonoBehaviour
     {
-        public float minimumHalfWidth = 12.8f;
-        public float minimumHalfHeight = 7.2f;
-        public SpriteRenderer meadow;
-        private Camera target;
+        [FormerlySerializedAs("minimumHalfWidth")]
+        public float minimum_half_width = 12.8f;
+
+        [FormerlySerializedAs("minimumHalfHeight")]
+        public float minimum_half_height = 7.2f;
+
+        [FormerlySerializedAs("meadow")]
+        public SpriteRenderer sprite_renderer_meadow;
+        private Camera camera_target;
 
         private void Awake()
         {
-            target = GetComponent<Camera>();
+            camera_target = GetComponent<Camera>();
         }
 
         private void LateUpdate()
         {
-            target.orthographicSize = Mathf.Max(minimumHalfHeight, minimumHalfWidth / Mathf.Max(0.1f, target.aspect));
+            camera_target.orthographicSize = Mathf.Max(minimum_half_height, minimum_half_width / Mathf.Max(0.1f, camera_target.aspect));
 
-            if (meadow != null)
+            if (sprite_renderer_meadow != null)
             {
-                Vector2 size = meadow.sprite.bounds.size;
+                Vector2 size = sprite_renderer_meadow.sprite.bounds.size;
                 float cover = Mathf.Max(
-                    target.orthographicSize * 2 * target.aspect / size.x,
-                    target.orthographicSize * 2 / size.y);
-                meadow.transform.localScale = Vector3.one * cover * 1.01f;
+                    camera_target.orthographicSize * 2 * camera_target.aspect / size.x,
+                    camera_target.orthographicSize * 2 / size.y);
+                sprite_renderer_meadow.transform.localScale = Vector3.one * cover * 1.01f;
             }
         }
     }

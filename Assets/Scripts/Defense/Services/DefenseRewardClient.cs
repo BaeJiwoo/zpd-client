@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Zpd.Networking;
 using Zpd.Networking.DTO;
 using Zpd.Lobby;
@@ -11,8 +12,9 @@ namespace Zpd.Defense
     /// <summary>Authenticated prototype report; local statistics are never proof of rewards.</summary>
     public sealed class DefenseRewardClient : MonoBehaviour
     {
+        [FormerlySerializedAs("timeoutSeconds")]
         [Range(1, 30)]
-        public int timeoutSeconds = 5;
+        public int timeout_seconds = 5;
         public event Action Changed;
 
         public string Status { get; private set; } = "";
@@ -21,35 +23,35 @@ namespace Zpd.Defense
         public bool Succeeded { get; private set; }
         public string RunId { get; private set; }
 
-        private string payload;
-        private AccountSession session;
-        private CancellationTokenSource lifetime;
+        private string request_json;
+        private AccountSession account_session;
+        private CancellationTokenSource cts_request;
 
         public void Submit(DefenseRunReport report)
         {
             Cancel();
-            session = AuthManager.Instance.Current;
+            account_session = AuthManager.Instance.Current;
 
-            if (!AuthManager.Instance.IsCurrent(session) || report.ownerPlayerId != session.PlayerId || report.accountApiRoot != session.ApiRoot)
+            if (!AuthManager.Instance.IsCurrent(account_session) || report.ownerPlayerId != account_session.PlayerId || report.accountApiRoot != account_session.ApiRoot)
             {
                 Fail("Sign in with the account that started this run.");
                 return;
             }
 
             RunId = report.runId;
-            payload = JsonUtility.ToJson(report);
-            lifetime = new CancellationTokenSource();
+            request_json = JsonUtility.ToJson(report);
+            cts_request = new CancellationTokenSource();
             Retry();
         }
 
         public void Retry()
         {
-            if (IsBusy || Succeeded || string.IsNullOrEmpty(payload))
+            if (IsBusy || Succeeded || string.IsNullOrEmpty(request_json))
             {
                 return;
             }
 
-            if (!AuthManager.Instance.IsCurrent(session))
+            if (!AuthManager.Instance.IsCurrent(account_session))
             {
                 Fail("Please sign in again.");
                 return;
@@ -59,7 +61,7 @@ namespace Zpd.Defense
             Status = "REQUESTING REWARD...";
             Detail = "Waiting for the reward service.\nExperience has not been awarded.";
             Changed?.Invoke();
-            _ = SendAsync(lifetime);
+            _ = SendAsync(cts_request);
         }
 
         private async Task SendAsync(CancellationTokenSource attempt)
@@ -68,10 +70,10 @@ namespace Zpd.Defense
 
             try
             {
-                var api = AuthManager.Instance.CreateClient(session, timeoutSeconds);
+                var api = AuthManager.Instance.CreateClient(account_session, timeout_seconds);
                 var response = await api.PostJsonAsync<DefenseRewardResponse>(
                     "/prototype/defense-runs/" + Uri.EscapeDataString(RunId) + "/rewards",
-                    payload,
+                    request_json,
                     token,
                     authenticated: true,
                     operationId: RunId);
@@ -121,19 +123,19 @@ namespace Zpd.Defense
 
         public void Cancel()
         {
-            lifetime?.Cancel();
-            lifetime?.Dispose();
-            lifetime = null;
+            cts_request?.Cancel();
+            cts_request?.Dispose();
+            cts_request = null;
             IsBusy = false;
             Succeeded = false;
-            payload = null;
+            request_json = null;
             RunId = null;
-            session = null;
+            account_session = null;
         }
 
         private void AccountChanged()
         {
-            if (payload == null)
+            if (request_json == null)
             {
                 return;
             }

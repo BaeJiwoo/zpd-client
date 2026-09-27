@@ -29,28 +29,28 @@ namespace Zpd.Networking
 
     public sealed class MatchmakingClient
     {
-        private readonly NetworkClient m_client;
-        private readonly List<ulong> m_players = new List<ulong>();
-        private readonly Stopwatch m_requestTimer = new Stopwatch();
-        private uint m_pendingRequestId;
-        private byte m_expectedResponse;
+        private readonly NetworkClient network_client;
+        private readonly List<ulong> session_player_ids = new List<ulong>();
+        private readonly Stopwatch request_timer = new Stopwatch();
+        private uint pending_request_id;
+        private byte expected_response_code;
 
         public MatchState State { get; private set; }
         public ulong PlayerId { get; private set; }
         public ulong SessionId { get; private set; }
-        public IReadOnlyList<ulong> Players => m_players.AsReadOnly();
-        public bool IsBusy => m_pendingRequestId != 0;
+        public IReadOnlyList<ulong> Players => session_player_ids.AsReadOnly();
+        public bool IsBusy => pending_request_id != 0;
 
         public event Action<string> MessageReceived;
 
         public MatchmakingClient(NetworkClient client)
         {
-            m_client = client ?? throw new ArgumentNullException(nameof(client));
+            network_client = client ?? throw new ArgumentNullException(nameof(client));
         }
 
         public void HandleConnected()
         {
-            if (!m_client.IsConnected)
+            if (!network_client.IsConnected)
             {
                 return;
             }
@@ -64,7 +64,7 @@ namespace Zpd.Networking
             State = MatchState.Disconnected;
             PlayerId = 0;
             SessionId = 0;
-            m_players.Clear();
+            session_player_ids.Clear();
             CompleteRequest();
         }
 
@@ -107,10 +107,10 @@ namespace Zpd.Networking
 
         public void Tick()
         {
-            if (IsBusy && m_requestTimer.ElapsedMilliseconds >= 5000)
+            if (IsBusy && request_timer.ElapsedMilliseconds >= 5000)
             {
                 MessageReceived?.Invoke("Match request timed out. Check that the updated server is running.");
-                m_client.Disconnect();
+                network_client.Disconnect();
                 HandleDisconnected();
             }
         }
@@ -135,7 +135,7 @@ namespace Zpd.Networking
                     return true;
                 }
 
-                if (!IsBusy || packet.RequestId != m_pendingRequestId || packet.Code != m_expectedResponse)
+                if (!IsBusy || packet.RequestId != pending_request_id || packet.Code != expected_response_code)
                 {
                     throw new InvalidDataException("Unexpected match response. Check the server version.");
                 }
@@ -182,7 +182,7 @@ namespace Zpd.Networking
                         }
 
                         SessionId = 0;
-                        m_players.Clear();
+                        session_player_ids.Clear();
                         State = MatchState.Ready;
                         MessageReceived?.Invoke("Left the session.");
                         break;
@@ -191,7 +191,7 @@ namespace Zpd.Networking
             catch (Exception error) when (error is InvalidDataException || error is InvalidProtocolBufferException)
             {
                 MessageReceived?.Invoke(error.Message);
-                m_client.Disconnect();
+                network_client.Disconnect();
                 HandleDisconnected();
             }
 
@@ -216,16 +216,16 @@ namespace Zpd.Networking
                 }
 
                 SessionId = matched.SessionId;
-                m_players.Clear();
-                m_players.AddRange(matched.PlayerIds);
+                session_player_ids.Clear();
+                session_player_ids.AddRange(matched.PlayerIds);
                 State = MatchState.InSession;
-                MessageReceived?.Invoke("Matched! Session " + SessionId + " / players: " + string.Join(", ", m_players));
+                MessageReceived?.Invoke("Matched! Session " + SessionId + " / players: " + string.Join(", ", session_player_ids));
                 return;
             }
 
             var left = SessionPlayerLeft.Parser.ParseFrom(packet.Payload);
 
-            if (State != MatchState.InSession || left.SessionId != SessionId || left.PlayerId == PlayerId || !m_players.Remove(left.PlayerId))
+            if (State != MatchState.InSession || left.SessionId != SessionId || left.PlayerId == PlayerId || !session_player_ids.Remove(left.PlayerId))
             {
                 throw new InvalidDataException("Invalid session departure.");
             }
@@ -240,16 +240,16 @@ namespace Zpd.Networking
                 throw new InvalidOperationException("A match request is already pending.");
             }
 
-            m_pendingRequestId = m_client.SendRequest(code, message.ToByteArray());
-            m_expectedResponse = expectedResponse;
-            m_requestTimer.Restart();
+            pending_request_id = network_client.SendRequest(code, message.ToByteArray());
+            expected_response_code = expectedResponse;
+            request_timer.Restart();
         }
 
         private void CompleteRequest()
         {
-            m_pendingRequestId = 0;
-            m_expectedResponse = 0;
-            m_requestTimer.Reset();
+            pending_request_id = 0;
+            expected_response_code = 0;
+            request_timer.Reset();
         }
     }
 }

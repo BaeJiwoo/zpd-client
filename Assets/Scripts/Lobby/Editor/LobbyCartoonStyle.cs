@@ -10,7 +10,11 @@ namespace Zpd.Lobby.Editor
     /// <summary>Uses the original lobby's illustrated atlas, palette and button states.</summary>
     public static class LobbyCartoonStyle
     {
-        private static readonly Color Ink = C("24192F"), Cream = C("FFF2D8"), Muted = C("665274");
+        private static readonly Color color_color_ink = C("24192F");
+
+        private static readonly Color color_color_cream = C("FFF2D8");
+
+        private static readonly Color color_color_muted = C("665274");
 
         [MenuItem("ZPD/Lobby/Apply Cartoon Style to Open Lobby")]
         public static void ApplyOpen()
@@ -104,7 +108,7 @@ namespace Zpd.Lobby.Editor
 
             foreach (var text in lobby.GetComponentsInChildren<Text>(true))
             {
-                text.color = Ink;
+                text.color = color_color_ink;
 
                 if (text.fontSize >= 19)
                 {
@@ -113,7 +117,7 @@ namespace Zpd.Lobby.Editor
 
                 if (text.name == "History" || text.name == "History Title" || text.name == "Inventory Status" || text.name == "Hint" || text.name == "Category" || text.name == "Description" || text.name == "Empty State")
                 {
-                    text.color = Muted;
+                    text.color = color_color_muted;
                 }
             }
 
@@ -131,14 +135,14 @@ namespace Zpd.Lobby.Editor
 
             )
             {
-                var text = lobby.home.transform.Find(name)?.GetComponent<Text>();
+                var text = lobby.canvas_group_home.transform.Find(name)?.GetComponent<Text>();
 
                 if (text == null)
                 {
                     continue;
                 }
 
-                text.color = Cream;
+                text.color = color_color_cream;
 
                 if (name == "Brand")
                 {
@@ -148,30 +152,30 @@ namespace Zpd.Lobby.Editor
                 }
             }
 
-            var inventory = lobby.inventoryPanel.transform;
+            var inventory = lobby.game_object_inventory_panel.transform;
             AddIcon(inventory, sprites, "Backpack", new Vector2(-332, 218), new Vector2(40, 40));
             var heading = inventory.Find("Inventory Title").GetComponent<RectTransform>();
             heading.anchoredPosition = new Vector2(-148, 218);
             heading.sizeDelta = new Vector2(316, 36);
-            var friends = lobby.home.transform.Find("Friends");
+            var friends = lobby.canvas_group_home.transform.Find("Friends");
             AddIcon(friends, sprites, "Friends", new Vector2(-112, 2), new Vector2(40, 40));
             var friendLabel = friends.Find("Label").GetComponent<Text>();
             friendLabel.rectTransform.anchoredPosition = new Vector2(22, 2);
             friendLabel.rectTransform.sizeDelta = new Vector2(230, 44);
             friendLabel.fontSize = 20;
-            var inventoryButton = lobby.home.transform.Find("Inventory Button");
+            var inventoryButton = lobby.canvas_group_home.transform.Find("Inventory Button");
             AddIcon(inventoryButton, sprites, "Backpack", new Vector2(-112, 2), new Vector2(40, 40));
             var inventoryLabel = inventoryButton.Find("Label").GetComponent<Text>();
             inventoryLabel.rectTransform.anchoredPosition = new Vector2(22, 2);
             inventoryLabel.rectTransform.sizeDelta = new Vector2(230, 44);
 
-            if (lobby.home.transform.Find("Comic Backdrop") == null)
+            if (lobby.canvas_group_home.transform.Find("Comic Backdrop") == null)
             {
-                var source = lobby.social.transform.Find("Comic Backdrop");
+                var source = lobby.legacy_lobby_controller.transform.Find("Comic Backdrop");
 
                 if (source != null)
                 {
-                    var backdrop = UnityEngine.Object.Instantiate(source.gameObject, lobby.home.transform, false);
+                    var backdrop = UnityEngine.Object.Instantiate(source.gameObject, lobby.canvas_group_home.transform, false);
                     backdrop.name = "Comic Backdrop";
                     backdrop.SetActive(true);
                     backdrop.transform.SetAsFirstSibling();

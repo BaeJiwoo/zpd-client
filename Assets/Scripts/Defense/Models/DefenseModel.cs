@@ -29,11 +29,11 @@ namespace Zpd.Defense
         public void BeginWave(DefenseWaveRules rules, Vector2 arenaHalfSize)
         {
             Phase = DefensePhase.Warning;
-            PhaseRemaining = Mathf.Max(0.5f, rules.warningSeconds);
+            PhaseRemaining = Mathf.Max(0.5f, rules.warning_seconds);
             Remaining = rules.Count(Wave);
             Spawned = 0;
             SpawnIn = 0;
-            EntranceCount = Wave >= rules.twoEntrancesFromWave ? 2 : 1;
+            EntranceCount = Wave >= rules.two_entrances_from_wave ? 2 : 1;
             int edge = (Wave - 1) % 4;
 
             for (int i = 0; i < EntranceCount; i++)
@@ -61,7 +61,7 @@ namespace Zpd.Defense
         public void BeginPreparation(DefenseWaveRules rules)
         {
             Phase = DefensePhase.Preparation;
-            PhaseRemaining = Mathf.Max(1, rules.preparationSeconds);
+            PhaseRemaining = Mathf.Max(1, rules.preparation_seconds);
         }
 
         public void Start(string runId)

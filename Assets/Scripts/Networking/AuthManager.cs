@@ -20,8 +20,8 @@ namespace Zpd.Networking
         public event Action Changed;
         public event Action<AuthState> StateChanged;
 
-        private int _loginAttempt;
-        private int _activeLogin;
+        private int login_attempt_version;
+        private int active_login_attempt_id;
 
         private AuthManager()
         {
@@ -58,8 +58,8 @@ namespace Zpd.Networking
             }
 
             var api = new ApiClient(apiRoot, timeoutSeconds: timeoutSeconds);
-            int attempt = ++_loginAttempt;
-            _activeLogin = attempt;
+            int attempt = ++login_attempt_version;
+            active_login_attempt_id = attempt;
             SetState(AuthState.Busy);
 
             try
@@ -71,7 +71,7 @@ namespace Zpd.Networking
 
                 cancellation.ThrowIfCancellationRequested();
 
-                if (attempt != _loginAttempt)
+                if (attempt != login_attempt_version)
                 {
                     return ApiResult<AccountSession>.Failure(ApiErrorCode.SessionExpired);
                 }
@@ -104,9 +104,9 @@ namespace Zpd.Networking
             }
             finally
             {
-                if (_activeLogin == attempt)
+                if (active_login_attempt_id == attempt)
                 {
-                    _activeLogin = 0;
+                    active_login_attempt_id = 0;
                     SetState(IsSignedIn ? AuthState.SignedIn : AuthState.SignedOut);
                 }
             }
@@ -143,7 +143,7 @@ namespace Zpd.Networking
         private void OnSessionChanged()
         {
             // A logout or account change invalidates every older pending login.
-            _loginAttempt++;
+            login_attempt_version++;
             SetState(IsSignedIn ? AuthState.SignedIn : AuthState.SignedOut);
             Changed?.Invoke();
         }

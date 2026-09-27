@@ -6,23 +6,30 @@ namespace Zpd.Lobby
 {
     public sealed class LoginView : MonoBehaviour
     {
+        [FormerlySerializedAs("loginId")]
         [FormerlySerializedAs("playerId")]
-        public InputField loginId;
-        public InputField password;
-        public Button login;
-        public Text status;
+        public InputField input_login_id;
 
-        public bool IsConfigured => loginId != null && password != null &&
-            loginId != password && login != null && status != null;
+        [FormerlySerializedAs("password")]
+        public InputField input_password;
+
+        [FormerlySerializedAs("login")]
+        public Button btn_login;
+
+        [FormerlySerializedAs("status")]
+        public Text txt_status;
+
+        public bool IsConfigured => input_login_id != null && input_password != null &&
+            input_login_id != input_password && btn_login != null && txt_status != null;
 
         public bool TryBindControls()
         {
             // Scene refreshes can lose bindings while leaving the authored controls intact.
-            loginId = Resolve(loginId, "Login Card/ID");
-            loginId = Resolve(loginId, "Login Card/Player ID");
-            password = Resolve(password, "Login Card/Password");
-            login = Resolve(login, "Login Card/Login");
-            status = Resolve(status, "Login Card/Status");
+            input_login_id = Resolve(input_login_id, "Login Card/ID");
+            input_login_id = Resolve(input_login_id, "Login Card/Player ID");
+            input_password = Resolve(input_password, "Login Card/Password");
+            btn_login = Resolve(btn_login, "Login Card/Login");
+            txt_status = Resolve(txt_status, "Login Card/Status");
             return IsConfigured;
         }
 
@@ -33,29 +40,29 @@ namespace Zpd.Lobby
 
         public void Render(bool busy, string message)
         {
-            loginId.interactable = !busy;
-            password.interactable = !busy;
-            login.interactable = !busy;
-            status.text = message;
+            input_login_id.interactable = !busy;
+            input_password.interactable = !busy;
+            btn_login.interactable = !busy;
+            txt_status.text = message;
         }
 
         public void Focus()
         {
-            loginId.Select();
-            loginId.ActivateInputField();
+            input_login_id.Select();
+            input_login_id.ActivateInputField();
         }
 
         public void FocusPassword()
         {
-            password.Select();
-            password.ActivateInputField();
+            input_password.Select();
+            input_password.ActivateInputField();
         }
 
         public void ClearPassword()
         {
-            if (password != null)
+            if (input_password != null)
             {
-                password.text = string.Empty;
+                input_password.text = string.Empty;
             }
         }
     }

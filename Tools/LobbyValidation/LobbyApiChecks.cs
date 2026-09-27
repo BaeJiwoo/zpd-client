@@ -100,7 +100,7 @@ public static class LobbyApiChecks
                 Require(requests[2].StartsWith("POST /api/v1/me/inventory/potion/use HTTP") && requests[2].Contains("{\"quantity\":1}"), "Use route/body");
                 Require(requests[0].Contains("Authorization: Bearer test-token") && requests[2].Contains("Idempotency-Key: stable-key"), "Authentication and idempotency headers");
                 c.enabled = true; c.ConfigureService(api); await c.RefreshAsync();
-                c.OpenProfile(); Require(c.Model.Profile.Nickname == "HTTP Player" && c.nickname.text.Contains("HTTP Player"), "HTTP response rendered in profile");
+                c.OpenProfile(); Require(c.Model.Profile.Nickname == "HTTP Player" && c.txt_nickname.text.Contains("HTTP Player"), "HTTP response rendered in profile");
                 c.OpenInventory(); await c.RefreshInventoryAsync(); c.InspectItem("potion"); await c.UseSelectedItemAsync();
                 Require(c.Model.Items[0].Quantity == 4, "Controller uses HTTP mutation response");
                 server.status = 401; server.bodyOverride = "{\"error\":{\"code\":\"UNAUTHORIZED\"}}";

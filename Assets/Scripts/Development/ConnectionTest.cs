@@ -1,47 +1,51 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Zpd.Networking;
 
 namespace Zpd.Development
 {
     public sealed class ConnectionTest : MonoBehaviour
     {
+        [FormerlySerializedAs("m_host")]
         [SerializeField]
-        private string m_host = "127.0.0.1";
+        private string server_host = "127.0.0.1";
 
+        [FormerlySerializedAs("m_port")]
         [SerializeField]
-        private int m_port = NetworkSettings.DefaultPort;
+        private int server_port = NetworkSettings.DefaultPort;
 
+        [FormerlySerializedAs("m_fontSize")]
         [SerializeField, Range(16, 32)]
-        private int m_fontSize = 22;
-        private PacketHandler m_packetHandler;
-        private readonly Queue<string> m_messages = new Queue<string>();
-        private NetworkClient m_client;
-        private string m_text = "Hello, server!";
-        private string m_code = "1";
-        private string m_portText;
-        private Vector2 m_scroll;
-        private Vector2 m_pageScroll;
-        private bool m_connecting;
-        private GUIStyle m_titleStyle;
-        private GUIStyle m_labelStyle;
-        private GUIStyle m_buttonStyle;
-        private GUIStyle m_inputStyle;
-        private GUIStyle m_logStyle;
-        private GUIStyle m_panelStyle;
-        private int m_appliedFontSize;
+        private int font_size = 22;
+        private PacketHandler packet_handler;
+        private readonly Queue<string> log_messages = new Queue<string>();
+        private NetworkClient network_client;
+        private string message_input = "Hello, server!";
+        private string message_code_input = "1";
+        private string port_input;
+        private Vector2 log_scroll_position;
+        private Vector2 page_scroll_position;
+        private bool is_connecting;
+        private GUIStyle gui_style_title;
+        private GUIStyle gui_style_label;
+        private GUIStyle gui_style_button;
+        private GUIStyle gui_style_input;
+        private GUIStyle gui_style_log;
+        private GUIStyle gui_style_panel;
+        private int applied_font_size;
 
         private void Awake()
         {
-            m_portText = m_port.ToString();
+            port_input = server_port.ToString();
         }
 
         private void Update()
         {
             for (int count = 0; count < NetworkSettings.MaxEventsPerFrame; ++count)
             {
-                if (m_client == null || !m_client.TryDequeue(out NetworkEvent networkEvent))
+                if (network_client == null || !network_client.TryDequeue(out NetworkEvent networkEvent))
                 {
                     break;
                 }
@@ -49,20 +53,20 @@ namespace Zpd.Development
                 switch (networkEvent.Type)
                 {
                     case NetworkEventType.Connected:
-                        m_connecting = false;
-                        m_packetHandler.HandleConnected();
+                        is_connecting = false;
+                        packet_handler.HandleConnected();
                         break;
                     case NetworkEventType.PacketReceived:
-                        m_packetHandler.HandlePacketReceived(networkEvent.Packet);
+                        packet_handler.HandlePacketReceived(networkEvent.Packet);
                         break;
                     case NetworkEventType.Disconnected:
-                        m_connecting = false;
-                        m_packetHandler.HandleDisconnected(networkEvent.Reason);
+                        is_connecting = false;
+                        packet_handler.HandleDisconnected(networkEvent.Reason);
                         break;
                 }
             }
 
-            m_packetHandler?.Matchmaking.Tick();
+            packet_handler?.Matchmaking.Tick();
         }
 
         private void OnGUI()
@@ -71,9 +75,9 @@ namespace Zpd.Development
             bool wideLayout = Screen.width >= 900;
             GUILayout.BeginArea(
                 new Rect(12, 12, Mathf.Max(1, Screen.width - 24), Mathf.Max(1, Screen.height - 24)),
-                m_panelStyle);
-            m_pageScroll = GUILayout.BeginScrollView(m_pageScroll);
-            GUILayout.Label("ZPD Connection Test", m_titleStyle);
+                gui_style_panel);
+            page_scroll_position = GUILayout.BeginScrollView(page_scroll_position);
+            GUILayout.Label("ZPD Connection Test", gui_style_title);
             GUILayout.Space(12);
 
             if (wideLayout)
@@ -81,39 +85,39 @@ namespace Zpd.Development
                 GUILayout.BeginHorizontal();
             }
 
-            GUILayout.BeginVertical(m_panelStyle, wideLayout ? GUILayout.Width(380) : GUILayout.ExpandWidth(true));
-            GUILayout.Label("Server: " + m_host, m_labelStyle);
-            bool connected = m_client != null && m_client.IsConnected;
-            GUILayout.Label("Port (1-65535)", m_labelStyle);
-            GUI.enabled = !m_connecting && !connected;
-            m_portText = GUILayout.TextField(m_portText, m_inputStyle, GUILayout.Height(48));
+            GUILayout.BeginVertical(gui_style_panel, wideLayout ? GUILayout.Width(380) : GUILayout.ExpandWidth(true));
+            GUILayout.Label("Server: " + server_host, gui_style_label);
+            bool connected = network_client != null && network_client.IsConnected;
+            GUILayout.Label("Port (1-65535)", gui_style_label);
+            GUI.enabled = !is_connecting && !connected;
+            port_input = GUILayout.TextField(port_input, gui_style_input, GUILayout.Height(48));
             GUI.enabled = true;
             bool validPort = TryReadPort(out _);
 
             if (!validPort)
             {
-                GUILayout.Label("Enter a port from 1 to 65535.", m_labelStyle);
+                GUILayout.Label("Enter a port from 1 to 65535.", gui_style_label);
             }
 
             GUILayout.Space(8);
             Color previousColor = GUI.contentColor;
             GUI.contentColor = connected ? new Color(0.4f, 1f, 0.6f) : new Color(1f, 0.8f, 0.4f);
-            GUILayout.Label(m_connecting ? "Connecting..." : connected ? "Connected" : "Disconnected", m_labelStyle);
+            GUILayout.Label(is_connecting ? "Connecting..." : connected ? "Connected" : "Disconnected", gui_style_label);
             GUI.contentColor = previousColor;
             GUILayout.Space(12);
             GUILayout.BeginHorizontal();
-            GUI.enabled = !m_connecting && !connected && validPort;
+            GUI.enabled = !is_connecting && !connected && validPort;
 
-            if (GUILayout.Button("Connect", m_buttonStyle))
+            if (GUILayout.Button("Connect", gui_style_button))
             {
                 Connect();
             }
 
-            GUI.enabled = m_connecting || connected;
+            GUI.enabled = is_connecting || connected;
 
-            if (GUILayout.Button("Disconnect", m_buttonStyle))
+            if (GUILayout.Button("Disconnect", gui_style_button))
             {
-                m_client.Disconnect();
+                network_client.Disconnect();
             }
 
             GUI.enabled = true;
@@ -121,15 +125,15 @@ namespace Zpd.Development
             GUILayout.Space(20);
             DrawMatchmaking(connected);
             GUILayout.Space(20);
-            GUILayout.Label("Message code (0-255)", m_labelStyle);
-            m_code = GUILayout.TextField(m_code, 3, m_inputStyle, GUILayout.Height(48));
+            GUILayout.Label("Message code (0-255)", gui_style_label);
+            message_code_input = GUILayout.TextField(message_code_input, 3, gui_style_input, GUILayout.Height(48));
             GUILayout.Space(12);
-            GUILayout.Label("UTF-8 message", m_labelStyle);
-            m_text = GUILayout.TextArea(m_text, m_inputStyle, GUILayout.Height(140));
+            GUILayout.Label("UTF-8 message", gui_style_label);
+            message_input = GUILayout.TextArea(message_input, gui_style_input, GUILayout.Height(140));
             GUILayout.Space(12);
             GUI.enabled = connected;
 
-            if (GUILayout.Button("Send message", m_buttonStyle))
+            if (GUILayout.Button("Send message", gui_style_button))
             {
                 SendPacket();
             }
@@ -138,29 +142,29 @@ namespace Zpd.Development
             GUILayout.EndVertical();
 
             GUILayout.Space(16);
-            GUILayout.BeginVertical(m_panelStyle, GUILayout.ExpandWidth(true));
+            GUILayout.BeginVertical(gui_style_panel, GUILayout.ExpandWidth(true));
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Communication log", m_labelStyle);
+            GUILayout.Label("Communication log", gui_style_label);
 
-            if (GUILayout.Button("Clear", m_buttonStyle, GUILayout.Width(100)))
+            if (GUILayout.Button("Clear", gui_style_button, GUILayout.Width(100)))
             {
-                m_messages.Clear();
+                log_messages.Clear();
             }
 
             GUILayout.EndHorizontal();
             GUILayout.Space(8);
-            m_scroll = GUILayout.BeginScrollView(
-                m_scroll,
+            log_scroll_position = GUILayout.BeginScrollView(
+                log_scroll_position,
                 GUILayout.Height(wideLayout ? Mathf.Max(300, Screen.height - 210) : 300));
 
-            if (m_messages.Count == 0)
+            if (log_messages.Count == 0)
             {
-                GUILayout.Label("Connect and send a message to see the server response here.", m_labelStyle);
+                GUILayout.Label("Connect and send a message to see the server response here.", gui_style_label);
             }
 
-            foreach (string message in m_messages)
+            foreach (string message in log_messages)
             {
-                GUILayout.Label(message, m_logStyle);
+                GUILayout.Label(message, gui_style_log);
                 GUILayout.Space(8);
             }
 
@@ -178,46 +182,46 @@ namespace Zpd.Development
 
         private void PrepareStyles()
         {
-            if (m_titleStyle != null && m_appliedFontSize == m_fontSize)
+            if (gui_style_title != null && applied_font_size == font_size)
             {
                 return;
             }
 
             var font = Resources.Load<Font>("Fonts/NexonLv1/NEXONLv1GothicRegular");
-            m_appliedFontSize = m_fontSize;
-            m_titleStyle = new GUIStyle(GUI.skin.label)
+            applied_font_size = font_size;
+            gui_style_title = new GUIStyle(GUI.skin.label)
             {
                 font = font,
-                fontSize = m_fontSize + 10,
+                fontSize = font_size + 10,
                 fontStyle = FontStyle.Bold,
                 wordWrap = true
             };
-            m_labelStyle = new GUIStyle(GUI.skin.label)
+            gui_style_label = new GUIStyle(GUI.skin.label)
             {
                 font = font,
-                fontSize = m_fontSize,
+                fontSize = font_size,
                 wordWrap = true
             };
-            m_buttonStyle = new GUIStyle(GUI.skin.button)
+            gui_style_button = new GUIStyle(GUI.skin.button)
             {
                 font = font,
-                fontSize = m_fontSize,
+                fontSize = font_size,
                 padding = new RectOffset(14, 14, 12, 12),
                 fixedHeight = 52
             };
-            m_inputStyle = new GUIStyle(GUI.skin.textArea)
+            gui_style_input = new GUIStyle(GUI.skin.textArea)
             {
                 font = font,
-                fontSize = m_fontSize,
+                fontSize = font_size,
                 padding = new RectOffset(12, 12, 10, 10),
                 wordWrap = true
             };
-            m_logStyle = new GUIStyle(m_labelStyle)
+            gui_style_log = new GUIStyle(gui_style_label)
             {
                 padding = new RectOffset(12, 12, 12, 12)
             };
-            m_logStyle.normal.background = GUI.skin.box.normal.background;
-            m_panelStyle = new GUIStyle(GUI.skin.box)
+            gui_style_log.normal.background = GUI.skin.box.normal.background;
+            gui_style_panel = new GUIStyle(GUI.skin.box)
             {
                 font = font,
                 padding = new RectOffset(16, 16, 16, 16)
@@ -226,36 +230,36 @@ namespace Zpd.Development
 
         private void DrawMatchmaking(bool connected)
         {
-            GUILayout.Label("Matchmaking", m_titleStyle);
-            MatchmakingClient matchmaking = m_packetHandler?.Matchmaking;
+            GUILayout.Label("Matchmaking", gui_style_title);
+            MatchmakingClient matchmaking = packet_handler?.Matchmaking;
 
             if (matchmaking == null || !connected)
             {
-                GUILayout.Label("Connect to join the matchmaking queue.", m_labelStyle);
+                GUILayout.Label("Connect to join the matchmaking queue.", gui_style_label);
                 return;
             }
 
-            GUILayout.Label(matchmaking.IsBusy ? "Request pending..." : matchmaking.State.ToString(), m_labelStyle);
+            GUILayout.Label(matchmaking.IsBusy ? "Request pending..." : matchmaking.State.ToString(), gui_style_label);
 
             if (matchmaking.PlayerId != 0)
             {
-                GUILayout.Label("Player: " + matchmaking.PlayerId, m_labelStyle);
+                GUILayout.Label("Player: " + matchmaking.PlayerId, gui_style_label);
             }
 
             if (matchmaking.State == MatchState.Waiting)
             {
-                GUILayout.Label("Waiting for other players...", m_labelStyle);
+                GUILayout.Label("Waiting for other players...", gui_style_label);
             }
 
             if (matchmaking.SessionId != 0)
             {
-                GUILayout.Label("Session: " + matchmaking.SessionId, m_titleStyle);
+                GUILayout.Label("Session: " + matchmaking.SessionId, gui_style_title);
 
                 foreach (ulong playerId in matchmaking.Players)
                 {
                     GUILayout.Label(
                         "Player " + playerId + (playerId == matchmaking.PlayerId ? " (You)" : ""),
-                        m_labelStyle);
+                        gui_style_label);
                 }
             }
 
@@ -263,17 +267,17 @@ namespace Zpd.Development
 
             try
             {
-                if (matchmaking.State == MatchState.Ready && GUILayout.Button("Find match", m_buttonStyle))
+                if (matchmaking.State == MatchState.Ready && GUILayout.Button("Find match", gui_style_button))
                 {
                     matchmaking.RequestMatch();
                 }
 
-                if (matchmaking.State == MatchState.Waiting && GUILayout.Button("Cancel match", m_buttonStyle))
+                if (matchmaking.State == MatchState.Waiting && GUILayout.Button("Cancel match", gui_style_button))
                 {
                     matchmaking.CancelMatch();
                 }
 
-                if (matchmaking.State == MatchState.InSession && GUILayout.Button("Leave session", m_buttonStyle))
+                if (matchmaking.State == MatchState.InSession && GUILayout.Button("Leave session", gui_style_button))
                 {
                     matchmaking.LeaveSession();
                 }
@@ -296,36 +300,36 @@ namespace Zpd.Development
 
             try
             {
-                m_port = port;
-                m_client?.Dispose();
+                server_port = port;
+                network_client?.Dispose();
 
-                if (m_packetHandler != null)
+                if (packet_handler != null)
                 {
-                    m_packetHandler.MessageReceived -= AddMessage;
+                    packet_handler.MessageReceived -= AddMessage;
                 }
 
-                m_client = new NetworkClient();
-                m_packetHandler = new PacketHandler(m_client);
-                m_packetHandler.MessageReceived += AddMessage;
-                m_connecting = true;
-                AddMessage("Connecting to " + m_host + ":" + m_port);
-                m_client.Connect(m_host, m_port);
+                network_client = new NetworkClient();
+                packet_handler = new PacketHandler(network_client);
+                packet_handler.MessageReceived += AddMessage;
+                is_connecting = true;
+                AddMessage("Connecting to " + server_host + ":" + server_port);
+                network_client.Connect(server_host, server_port);
             }
             catch (Exception error)
             {
-                m_connecting = false;
+                is_connecting = false;
                 AddMessage(error.Message);
             }
         }
 
         private bool TryReadPort(out int port)
         {
-            return int.TryParse(m_portText, out port) && port >= 1 && port <= 65535;
+            return int.TryParse(port_input, out port) && port >= 1 && port <= 65535;
         }
 
         private void SendPacket()
         {
-            if (!byte.TryParse(m_code, out byte code))
+            if (!byte.TryParse(message_code_input, out byte code))
             {
                 AddMessage("Message code must be between 0 and 255.");
                 return;
@@ -333,7 +337,7 @@ namespace Zpd.Development
 
             try
             {
-                m_packetHandler.SendText(code, m_text);
+                packet_handler.SendText(code, message_input);
             }
             catch (Exception error)
             {
@@ -343,28 +347,28 @@ namespace Zpd.Development
 
         private void AddMessage(string message)
         {
-            if (m_messages.Count >= 100)
+            if (log_messages.Count >= 100)
             {
-                m_messages.Dequeue();
+                log_messages.Dequeue();
             }
 
-            m_messages.Enqueue(message);
-            m_scroll.y = float.MaxValue;
+            log_messages.Enqueue(message);
+            log_scroll_position.y = float.MaxValue;
         }
 
         private void OnDestroy()
         {
-            m_client?.Dispose();
+            network_client?.Dispose();
 
-            if (m_packetHandler != null)
+            if (packet_handler != null)
             {
-                m_packetHandler.MessageReceived -= AddMessage;
+                packet_handler.MessageReceived -= AddMessage;
             }
         }
 
         private void OnApplicationQuit()
         {
-            m_client?.Dispose();
+            network_client?.Dispose();
         }
     }
 }

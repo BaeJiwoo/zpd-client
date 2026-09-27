@@ -1,30 +1,44 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Zpd.Lobby
 {
     public sealed class LobbyItemCard : MonoBehaviour
     {
-        public Text title, category, quantity;
-        public Image icon;
-        public Slider amount;
-        public Button button;
+        [FormerlySerializedAs("title")]
+        public Text txt_title;
+
+        [FormerlySerializedAs("category")]
+        public Text txt_category;
+
+        [FormerlySerializedAs("quantity")]
+        public Text txt_quantity;
+
+        [FormerlySerializedAs("icon")]
+        public Image img_icon;
+
+        [FormerlySerializedAs("amount")]
+        public Slider slider_owned_quantity;
+
+        [FormerlySerializedAs("button")]
+        public Button btn_select_item;
 
         public void Bind(LobbyItemSnapshot item, Sprite sprite, Action<string> selected)
         {
-            title.text = item.Name;
-            category.text = item.Kind == LobbyItemKind.Consumable ? "CONSUMABLE" : "EQUIPMENT";
-            icon.sprite = sprite;
-            icon.enabled = sprite != null;
+            txt_title.text = item.Name;
+            txt_category.text = item.Kind == LobbyItemKind.Consumable ? "CONSUMABLE" : "EQUIPMENT";
+            img_icon.sprite = sprite;
+            img_icon.enabled = sprite != null;
             bool consumable = item.Kind == LobbyItemKind.Consumable;
-            amount.gameObject.SetActive(consumable);
-            quantity.gameObject.SetActive(consumable);
-            amount.maxValue = Mathf.Max(1, item.Capacity);
-            amount.value = item.Quantity;
-            quantity.text = "OWNED  " + item.Quantity;
-            button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => selected(item.Id));
+            slider_owned_quantity.gameObject.SetActive(consumable);
+            txt_quantity.gameObject.SetActive(consumable);
+            slider_owned_quantity.maxValue = Mathf.Max(1, item.Capacity);
+            slider_owned_quantity.value = item.Quantity;
+            txt_quantity.text = "OWNED  " + item.Quantity;
+            btn_select_item.onClick.RemoveAllListeners();
+            btn_select_item.onClick.AddListener(() => selected(item.Id));
         }
     }
 }

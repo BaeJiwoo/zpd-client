@@ -13,14 +13,14 @@ namespace Zpd.Gameplay
         public static GameSessionTracker Instance { get; private set; }
         public bool IsRunning { get; private set; }
         public string CompletedJson { get; private set; }
-        public string CurrentRunId => run?.runId;
+        public string CurrentRunId => current_run?.runId;
         public string LastPersistenceError { get; private set; }
         public static string PendingDirectory => Path.Combine(Application.persistentDataPath, "pending-game-results");
 
-        private GameRunSnapshot run;
-        private readonly List<GameplayLogEvent> log = new List<GameplayLogEvent>();
-        private int sequence;
-        private float nextPositionSample;
+        private GameRunSnapshot current_run;
+        private readonly List<GameplayLogEvent> log_events = new List<GameplayLogEvent>();
+        private int last_event_sequence;
+        private float next_position_sample_at_seconds;
         private const int MaxEvents = 2048;
 
         private void Awake()
@@ -47,7 +47,7 @@ namespace Zpd.Gameplay
         {
             if (Instance == this && IsRunning)
             {
-                Finish("application_quit", run.playerHealth, run.beaconHealth);
+                Finish("application_quit", current_run.playerHealth, current_run.beaconHealth);
             }
         }
 
@@ -63,12 +63,12 @@ namespace Zpd.Gameplay
                 throw new ArgumentException("Dedicated battles require server-issued battle and participation IDs.");
             }
 
-            log.Clear();
-            sequence = 0;
-            nextPositionSample = 0;
+            log_events.Clear();
+            last_event_sequence = 0;
+            next_position_sample_at_seconds = 0;
             CompletedJson = null;
             LastPersistenceError = null;
-            run = new GameRunSnapshot
+            current_run = new GameRunSnapshot
             {
                 runId = Guid.NewGuid().ToString("N"),
                 gameMode = GameModeNames.ToApiValue(mode),
@@ -83,7 +83,7 @@ namespace Zpd.Gameplay
             };
             IsRunning = true;
             Record("run_started", 0, Vector2.zero);
-            return run.runId;
+            return current_run.runId;
         }
 
         public void Advance(float dt, Vector2 position, int playerHealth, int beaconHealth)
@@ -93,14 +93,14 @@ namespace Zpd.Gameplay
                 return;
             }
 
-            run.playedSeconds += Mathf.Max(0, dt);
-            run.playerHealth = playerHealth;
-            run.beaconHealth = beaconHealth;
+            current_run.playedSeconds += Mathf.Max(0, dt);
+            current_run.playerHealth = playerHealth;
+            current_run.beaconHealth = beaconHealth;
 
-            if (run.playedSeconds >= nextPositionSample)
+            if (current_run.playedSeconds >= next_position_sample_at_seconds)
             {
                 Record("position", 0, position);
-                nextPositionSample = run.playedSeconds + 1;
+                next_position_sample_at_seconds = current_run.playedSeconds + 1;
             }
         }
 
@@ -111,7 +111,7 @@ namespace Zpd.Gameplay
                 return;
             }
 
-            run.reachedWave = wave;
+            current_run.reachedWave = wave;
             Record("wave_started", wave, Vector2.zero);
         }
 
@@ -122,7 +122,7 @@ namespace Zpd.Gameplay
                 return;
             }
 
-            run.shotsFired++;
+            current_run.shotsFired++;
             Record("shot", 1, pos);
         }
 
@@ -133,7 +133,7 @@ namespace Zpd.Gameplay
                 return;
             }
 
-            run.hits++;
+            current_run.hits++;
             Record("hit", 1, pos);
         }
 
@@ -144,7 +144,7 @@ namespace Zpd.Gameplay
                 return;
             }
 
-            run.kills++;
+            current_run.kills++;
             Record("kill", 1, pos);
         }
 
@@ -155,7 +155,7 @@ namespace Zpd.Gameplay
                 return;
             }
 
-            run.goldCollected += amount;
+            current_run.goldCollected += amount;
             Record("gold_collected", amount, pos);
         }
 
@@ -166,7 +166,7 @@ namespace Zpd.Gameplay
                 return;
             }
 
-            run.goldSpent += amount;
+            current_run.goldSpent += amount;
             Record("gold_spent", amount, pos);
         }
 
@@ -174,7 +174,7 @@ namespace Zpd.Gameplay
         {
             if (IsRunning)
             {
-                run.equippedWeapon = weapon;
+                current_run.equippedWeapon = weapon;
             }
         }
 
@@ -187,11 +187,11 @@ namespace Zpd.Gameplay
 
             if (beacon)
             {
-                run.beaconDamage += amount;
+                current_run.beaconDamage += amount;
             }
             else
             {
-                run.damageTaken += amount;
+                current_run.damageTaken += amount;
             }
 
             Record(beacon ? "beacon_damage" : "player_damage", amount, pos);
@@ -204,23 +204,23 @@ namespace Zpd.Gameplay
                 return;
             }
 
-            sequence++;
+            last_event_sequence++;
 
             // Keep full summary counters even when a long run exhausts the detailed-event budget.
 
-            if (log.Count >= MaxEvents && type != "run_ended")
+            if (log_events.Count >= MaxEvents && type != "run_ended")
             {
-                run.droppedLogEvents++;
+                current_run.droppedLogEvents++;
                 return;
             }
 
-            log.Add(
-                new GameplayLogEvent { sequence = sequence, elapsedSeconds = run.playedSeconds, type = type, value = value, x = pos.x, y = pos.y });
+            log_events.Add(
+                new GameplayLogEvent { sequence = last_event_sequence, elapsedSeconds = current_run.playedSeconds, type = type, value = value, x = pos.x, y = pos.y });
         }
 
         public GameRunSnapshot Finish(string reason, int playerHealth, int beaconHealth)
         {
-            if (run == null)
+            if (current_run == null)
             {
                 throw new InvalidOperationException("No game session exists.");
             }
@@ -228,18 +228,18 @@ namespace Zpd.Gameplay
             if (IsRunning)
             {
                 Record("run_ended", 0, Vector2.zero);
-                run.endReason = reason;
-                run.endedAt = DateTime.UtcNow.ToString("O");
-                run.playerHealth = playerHealth;
-                run.beaconHealth = beaconHealth;
-                run.events = log.ToArray();
+                current_run.endReason = reason;
+                current_run.endedAt = DateTime.UtcNow.ToString("O");
+                current_run.playerHealth = playerHealth;
+                current_run.beaconHealth = beaconHealth;
+                current_run.events = log_events.ToArray();
                 IsRunning = false;
-                CompletedJson = JsonUtility.ToJson(run);
+                CompletedJson = JsonUtility.ToJson(current_run);
 
                 try
                 {
                     Directory.CreateDirectory(PendingDirectory);
-                    string path = Path.Combine(PendingDirectory, run.runId + ".json");
+                    string path = Path.Combine(PendingDirectory, current_run.runId + ".json");
                     File.WriteAllText(path + ".tmp", CompletedJson);
                     File.Move(path + ".tmp", path);
                 }

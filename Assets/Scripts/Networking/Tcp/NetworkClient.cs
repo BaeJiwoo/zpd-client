@@ -8,16 +8,16 @@ namespace Zpd.Networking
 {
     public sealed class NetworkClient : IDisposable
     {
-        private readonly object m_mutex = new object();
-        private readonly TcpTransport m_transport = new TcpTransport();
-        private readonly Queue<byte[]> m_sendQueue = new Queue<byte[]>();
-        private readonly Queue<NetworkEvent> m_eventQueue = new Queue<NetworkEvent>();
-        private readonly SemaphoreSlim m_sendReady = new SemaphoreSlim(0);
-        private readonly CancellationTokenSource m_lifetime = new CancellationTokenSource();
-        private bool m_started;
-        private bool m_connected;
-        private bool m_closed;
-        private uint m_requestId;
+        private readonly object state_lock = new object();
+        private readonly TcpTransport tcp_transport = new TcpTransport();
+        private readonly Queue<byte[]> send_queue = new Queue<byte[]>();
+        private readonly Queue<NetworkEvent> event_queue = new Queue<NetworkEvent>();
+        private readonly SemaphoreSlim send_queue_signal = new SemaphoreSlim(0);
+        private readonly CancellationTokenSource cts_lifetime = new CancellationTokenSource();
+        private bool is_started;
+        private bool is_connected;
+        private bool is_closed;
+        private uint last_request_id;
 
         public Task Completion { get; private set; } = Task.CompletedTask;
 
@@ -25,9 +25,9 @@ namespace Zpd.Networking
         {
             get
             {
-                lock (m_mutex)
+                lock (state_lock)
                 {
-                    return m_connected;
+                    return is_connected;
                 }
             }
         }
@@ -44,14 +44,14 @@ namespace Zpd.Networking
                 throw new ArgumentOutOfRangeException(nameof(port));
             }
 
-            lock (m_mutex)
+            lock (state_lock)
             {
-                if (m_started || m_closed)
+                if (is_started || is_closed)
                 {
                     throw new InvalidOperationException("Use a new client for each connection.");
                 }
 
-                m_started = true;
+                is_started = true;
                 Completion = RunAsync(host, port);
             }
         }
@@ -65,33 +65,33 @@ namespace Zpd.Networking
 
             byte[] bytes = PacketCodec.Encode(packet);
 
-            lock (m_mutex)
+            lock (state_lock)
             {
-                if (!m_connected)
+                if (!is_connected)
                 {
                     throw new InvalidOperationException("The client is not connected.");
                 }
 
-                if (m_sendQueue.Count >= NetworkSettings.MaxQueuedSends)
+                if (send_queue.Count >= NetworkSettings.MaxQueuedSends)
                 {
                     throw new InvalidOperationException("The send queue is full.");
                 }
 
-                m_sendQueue.Enqueue(bytes);
-                m_sendReady.Release();
+                send_queue.Enqueue(bytes);
+                send_queue_signal.Release();
             }
         }
 
         public uint SendRequest(byte code, byte[] payload)
         {
-            lock (m_mutex)
+            lock (state_lock)
             {
-                if (m_requestId == uint.MaxValue)
+                if (last_request_id == uint.MaxValue)
                 {
                     throw new InvalidOperationException("Reconnect before sending more requests.");
                 }
 
-                uint requestId = ++m_requestId;
+                uint requestId = ++last_request_id;
                 Send(new Packet(code, requestId, payload));
                 return requestId;
             }
@@ -99,15 +99,15 @@ namespace Zpd.Networking
 
         public bool TryDequeue(out NetworkEvent networkEvent)
         {
-            lock (m_mutex)
+            lock (state_lock)
             {
-                if (m_eventQueue.Count == 0)
+                if (event_queue.Count == 0)
                 {
                     networkEvent = null;
                     return false;
                 }
 
-                networkEvent = m_eventQueue.Dequeue();
+                networkEvent = event_queue.Dequeue();
                 return true;
             }
         }
@@ -126,21 +126,21 @@ namespace Zpd.Networking
         {
             try
             {
-                using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(m_lifetime.Token))
+                using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(cts_lifetime.Token))
                 {
                     timeout.CancelAfter(NetworkSettings.ConnectTimeoutMilliseconds);
-                    await m_transport.ConnectAsync(host, port, timeout.Token).ConfigureAwait(false);
+                    await tcp_transport.ConnectAsync(host, port, timeout.Token).ConfigureAwait(false);
                 }
 
-                lock (m_mutex)
+                lock (state_lock)
                 {
-                    if (m_closed)
+                    if (is_closed)
                     {
                         return;
                     }
 
-                    m_connected = true;
-                    m_eventQueue.Enqueue(new NetworkEvent(NetworkEventType.Connected));
+                    is_connected = true;
+                    event_queue.Enqueue(new NetworkEvent(NetworkEventType.Connected));
                 }
 
                 await Task.WhenAll(ReceiveLoopAsync(), SendLoopAsync()).ConfigureAwait(false);
@@ -161,31 +161,31 @@ namespace Zpd.Networking
             {
                 var header = new byte[NetworkSettings.HeaderSize];
 
-                while (await m_transport.ReadExactlyAsync(header, m_lifetime.Token).ConfigureAwait(false))
+                while (await tcp_transport.ReadExactlyAsync(header, cts_lifetime.Token).ConfigureAwait(false))
                 {
                     int size = PacketCodec.ReadSize(header);
                     var payload = new byte[size - NetworkSettings.HeaderSize];
 
-                    if (!await m_transport.ReadExactlyAsync(payload, m_lifetime.Token).ConfigureAwait(false))
+                    if (!await tcp_transport.ReadExactlyAsync(payload, cts_lifetime.Token).ConfigureAwait(false))
                     {
                         throw new EndOfStreamException("Connection closed before the packet body.");
                     }
 
                     Packet packet = PacketCodec.Decode(header, payload);
 
-                    lock (m_mutex)
+                    lock (state_lock)
                     {
-                        if (m_closed)
+                        if (is_closed)
                         {
                             return;
                         }
 
-                        if (m_eventQueue.Count >= NetworkSettings.MaxQueuedEvents - 1)
+                        if (event_queue.Count >= NetworkSettings.MaxQueuedEvents - 1)
                         {
                             throw new InvalidOperationException("The receive queue is full.");
                         }
 
-                        m_eventQueue.Enqueue(new NetworkEvent(NetworkEventType.PacketReceived, packet));
+                        event_queue.Enqueue(new NetworkEvent(NetworkEventType.PacketReceived, packet));
                     }
                 }
 
@@ -203,20 +203,20 @@ namespace Zpd.Networking
             {
                 while (true)
                 {
-                    await m_sendReady.WaitAsync(m_lifetime.Token).ConfigureAwait(false);
+                    await send_queue_signal.WaitAsync(cts_lifetime.Token).ConfigureAwait(false);
                     byte[] bytes;
 
-                    lock (m_mutex)
+                    lock (state_lock)
                     {
-                        if (m_closed)
+                        if (is_closed)
                         {
                             return;
                         }
 
-                        bytes = m_sendQueue.Dequeue();
+                        bytes = send_queue.Dequeue();
                     }
 
-                    await m_transport.WriteAsync(bytes, m_lifetime.Token).ConfigureAwait(false);
+                    await tcp_transport.WriteAsync(bytes, cts_lifetime.Token).ConfigureAwait(false);
                 }
             }
             catch (Exception error)
@@ -227,21 +227,21 @@ namespace Zpd.Networking
 
         private void Close(string reason)
         {
-            lock (m_mutex)
+            lock (state_lock)
             {
-                if (m_closed)
+                if (is_closed)
                 {
                     return;
                 }
 
-                m_closed = true;
-                m_connected = false;
-                m_sendQueue.Clear();
-                m_eventQueue.Enqueue(new NetworkEvent(NetworkEventType.Disconnected, reason: reason));
+                is_closed = true;
+                is_connected = false;
+                send_queue.Clear();
+                event_queue.Enqueue(new NetworkEvent(NetworkEventType.Disconnected, reason: reason));
             }
 
-            m_lifetime.Cancel();
-            m_transport.Dispose();
+            cts_lifetime.Cancel();
+            tcp_transport.Dispose();
         }
     }
 }

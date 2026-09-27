@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -11,31 +12,92 @@ namespace Zpd.Lobby
     /// <summary>Authored UI references, rendering and focus. Never changes account data or calls services.</summary>
     public sealed class LobbyView : MonoBehaviour
     {
-        public CanvasGroup home, sections;
-        public GameObject profilePanel, inventoryPanel;
-        public Text nickname, level, record, history, inventoryStatus, status, emptyState;
-        public Transform content;
-        public LobbyItemCard cardTemplate;
-        public Button[] filters;
-        public GameObject modal, quantityRoot;
-        public Text modalTitle, modalDescription, modalQuantity;
-        public Slider quantitySlider;
-        public Button useButton, soloButton;
+        [FormerlySerializedAs("home")]
+        public CanvasGroup canvas_group_home;
+
+        [FormerlySerializedAs("sections")]
+        public CanvasGroup canvas_group_sections;
+
+        [FormerlySerializedAs("profilePanel")]
+        public GameObject game_object_profile_panel;
+
+        [FormerlySerializedAs("inventoryPanel")]
+        public GameObject game_object_inventory_panel;
+
+        [FormerlySerializedAs("nickname")]
+        public Text txt_nickname;
+
+        [FormerlySerializedAs("level")]
+        public Text txt_level;
+
+        [FormerlySerializedAs("record")]
+        public Text txt_record;
+
+        [FormerlySerializedAs("history")]
+        public Text txt_history;
+
+        [FormerlySerializedAs("inventoryStatus")]
+        public Text txt_inventory_status;
+
+        [FormerlySerializedAs("status")]
+        public Text txt_status;
+
+        [FormerlySerializedAs("emptyState")]
+        public Text txt_empty_state;
+
+        [FormerlySerializedAs("content")]
+        public Transform transform_inventory_content;
+
+        [FormerlySerializedAs("cardTemplate")]
+        public LobbyItemCard lobby_item_card_template;
+
+        [FormerlySerializedAs("filters")]
+        public Button[] btn_inventory_filters;
+
+        [FormerlySerializedAs("modal")]
+        public GameObject game_object_modal;
+
+        [FormerlySerializedAs("quantityRoot")]
+        public GameObject game_object_quantity_root;
+
+        [FormerlySerializedAs("modalTitle")]
+        public Text txt_modal_title;
+
+        [FormerlySerializedAs("modalDescription")]
+        public Text txt_modal_description;
+
+        [FormerlySerializedAs("modalQuantity")]
+        public Text txt_modal_quantity;
+
+        [FormerlySerializedAs("quantitySlider")]
+        public Slider slider_quantity;
+
+        [FormerlySerializedAs("useButton")]
+        public Button btn_use_item;
+
+        [FormerlySerializedAs("soloButton")]
+        public Button btn_solo_defense;
 
         [Serializable]
         public sealed class Icon
         {
-            public string key;
-            public Sprite sprite;
+            [FormerlySerializedAs("key")]
+            public string icon_key;
+
+            [FormerlySerializedAs("sprite")]
+            public Sprite sprite_icon;
         }
 
-        public Icon[] icons = Array.Empty<Icon>();
+        [FormerlySerializedAs("icons")]
+        public Icon[] item_icons = Array.Empty<Icon>();
         public event Action<string> ItemSelected;
-        private readonly List<LobbyItemCard> cards = new List<LobbyItemCard>();
-        private GameObject previousSelection, sectionSelection;
+        private readonly List<LobbyItemCard> item_cards = new List<LobbyItemCard>();
+        private GameObject game_object_previous_selection;
 
-        public bool HasModal => modal.activeSelf;
-        public bool HasSection => sections.gameObject.activeSelf;
+        private GameObject game_object_section_selection;
+
+        public bool HasModal => game_object_modal.activeSelf;
+        public bool HasSection => canvas_group_sections.gameObject.activeSelf;
 
         private void OnValidate() => ResolveReferences();
 
@@ -43,81 +105,81 @@ namespace Zpd.Lobby
 
         public void ResolveReferences()
         {
-            if (home == null)
+            if (canvas_group_home == null)
             {
-                home = Find<CanvasGroup>("Home");
+                canvas_group_home = Find<CanvasGroup>("Home");
             }
 
-            if (sections == null)
+            if (canvas_group_sections == null)
             {
-                sections = Find<CanvasGroup>("Feature Windows");
+                canvas_group_sections = Find<CanvasGroup>("Feature Windows");
             }
 
-            if (profilePanel == null)
+            if (game_object_profile_panel == null)
             {
-                profilePanel = transform.Find("Feature Windows/Player Profile")?.gameObject;
+                game_object_profile_panel = transform.Find("Feature Windows/Player Profile")?.gameObject;
             }
 
-            if (inventoryPanel == null)
+            if (game_object_inventory_panel == null)
             {
-                inventoryPanel = transform.Find("Feature Windows/Inventory")?.gameObject;
+                game_object_inventory_panel = transform.Find("Feature Windows/Inventory")?.gameObject;
             }
 
-            if (modal == null)
+            if (game_object_modal == null)
             {
-                modal = transform.Find("Item Modal")?.gameObject;
+                game_object_modal = transform.Find("Item Modal")?.gameObject;
             }
 
             string p = "Feature Windows/Player Profile/", i = "Feature Windows/Inventory/", d = "Item Modal/Details/";
 
-            if (nickname == null)
+            if (txt_nickname == null)
             {
-                nickname = Find<Text>(p + "Nickname");
+                txt_nickname = Find<Text>(p + "Nickname");
             }
 
-            if (level == null)
+            if (txt_level == null)
             {
-                level = Find<Text>(p + "Level");
+                txt_level = Find<Text>(p + "Level");
             }
 
-            if (record == null)
+            if (txt_record == null)
             {
-                record = Find<Text>(p + "Record");
+                txt_record = Find<Text>(p + "Record");
             }
 
-            if (history == null)
+            if (txt_history == null)
             {
-                history = Find<Text>(p + "History Viewport/History");
+                txt_history = Find<Text>(p + "History Viewport/History");
             }
 
-            if (inventoryStatus == null)
+            if (txt_inventory_status == null)
             {
-                inventoryStatus = Find<Text>(i + "Inventory Status");
+                txt_inventory_status = Find<Text>(i + "Inventory Status");
             }
 
-            if (status == null)
+            if (txt_status == null)
             {
-                status = Find<Text>("Home/Status");
+                txt_status = Find<Text>("Home/Status");
             }
 
-            if (emptyState == null)
+            if (txt_empty_state == null)
             {
-                emptyState = Find<Text>(i + "Inventory Viewport/Empty State");
+                txt_empty_state = Find<Text>(i + "Inventory Viewport/Empty State");
             }
 
-            if (content == null)
+            if (transform_inventory_content == null)
             {
-                content = transform.Find(i + "Inventory Viewport/Items");
+                transform_inventory_content = transform.Find(i + "Inventory Viewport/Items");
             }
 
-            if (cardTemplate == null)
+            if (lobby_item_card_template == null)
             {
-                cardTemplate = Find<LobbyItemCard>(i + "Inventory Viewport/Items/Item Template");
+                lobby_item_card_template = Find<LobbyItemCard>(i + "Inventory Viewport/Items/Item Template");
             }
 
-            if (filters == null || filters.Length != 3 || filters.Any(b => b == null))
+            if (btn_inventory_filters == null || btn_inventory_filters.Length != 3 || btn_inventory_filters.Any(b => b == null))
             {
-                filters = new[]
+                btn_inventory_filters = new[]
                 {
                     Find<Button>(i + "All"),
                     Find<Button>(i + "Consumables"),
@@ -125,39 +187,39 @@ namespace Zpd.Lobby
                 };
             }
 
-            if (quantityRoot == null)
+            if (game_object_quantity_root == null)
             {
-                quantityRoot = transform.Find(d + "Owned Quantity")?.gameObject;
+                game_object_quantity_root = transform.Find(d + "Owned Quantity")?.gameObject;
             }
 
-            if (modalTitle == null)
+            if (txt_modal_title == null)
             {
-                modalTitle = Find<Text>(d + "Title");
+                txt_modal_title = Find<Text>(d + "Title");
             }
 
-            if (modalDescription == null)
+            if (txt_modal_description == null)
             {
-                modalDescription = Find<Text>(d + "Description");
+                txt_modal_description = Find<Text>(d + "Description");
             }
 
-            if (modalQuantity == null)
+            if (txt_modal_quantity == null)
             {
-                modalQuantity = Find<Text>(d + "Owned Quantity/Quantity");
+                txt_modal_quantity = Find<Text>(d + "Owned Quantity/Quantity");
             }
 
-            if (quantitySlider == null)
+            if (slider_quantity == null)
             {
-                quantitySlider = Find<Slider>(d + "Owned Quantity/Owned Amount");
+                slider_quantity = Find<Slider>(d + "Owned Quantity/Owned Amount");
             }
 
-            if (useButton == null)
+            if (btn_use_item == null)
             {
-                useButton = Find<Button>(d + "Use Item");
+                btn_use_item = Find<Button>(d + "Use Item");
             }
 
-            if (soloButton == null)
+            if (btn_solo_defense == null)
             {
-                soloButton = Find<Button>("Home/Solo Defense");
+                btn_solo_defense = Find<Button>("Home/Solo Defense");
             }
         }
 
@@ -167,11 +229,11 @@ namespace Zpd.Lobby
         public void Initialize()
         {
             ResolveReferences();
-            sections.gameObject.SetActive(false);
-            profilePanel.SetActive(false);
-            inventoryPanel.SetActive(false);
-            modal.SetActive(false);
-            cardTemplate.gameObject.SetActive(false);
+            canvas_group_sections.gameObject.SetActive(false);
+            game_object_profile_panel.SetActive(false);
+            game_object_inventory_panel.SetActive(false);
+            game_object_modal.SetActive(false);
+            lobby_item_card_template.gameObject.SetActive(false);
 
             foreach (var label in GetComponentsInChildren<Text>(true))
             {
@@ -182,14 +244,14 @@ namespace Zpd.Lobby
         public void RenderProfile(LobbyModel model)
         {
             var p = model.Profile;
-            nickname.text = p?.Nickname ?? (AuthManager.Instance.IsSignedIn ? "PLAYER " + AuthManager.Instance.PlayerId : "PLAYER --");
-            level.text = p == null ? "LEVEL --" : "LEVEL " + p.Level;
-            record.text = p == null
+            txt_nickname.text = p?.Nickname ?? (AuthManager.Instance.IsSignedIn ? "PLAYER " + AuthManager.Instance.PlayerId : "PLAYER --");
+            txt_level.text = p == null ? "LEVEL --" : "LEVEL " + p.Level;
+            txt_record.text = p == null
                 ? "MATCHES -- / WIN RATE --"
                 : p.Matches == 0
                 ? "0 MATCHES / WIN RATE --"
                 : $"{p.Matches} MATCHES / {p.Wins}W {p.Losses}L / WIN RATE {p.WinRate:0.#}%";
-            history.text = model.ProfileState == LobbyLoadState.Loading
+            txt_history.text = model.ProfileState == LobbyLoadState.Loading
                 ? "Loading profile..."
                 : model.ProfileState == LobbyLoadState.Error
                 ? model.ProfileError
@@ -202,41 +264,41 @@ namespace Zpd.Lobby
 
         public void RenderInventory(LobbyModel model)
         {
-            foreach (var card in cards)
+            foreach (var card in item_cards)
             {
                 card.gameObject.SetActive(false);
                 Destroy(card.gameObject);
             }
 
-            cards.Clear();
+            item_cards.Clear();
 
             foreach (var item in model.VisibleItems)
             {
-                var card = Instantiate(cardTemplate, content);
+                var card = Instantiate(lobby_item_card_template, transform_inventory_content);
                 card.gameObject.SetActive(true);
                 card.Bind(
                     item,
-                    icons.FirstOrDefault(i => i.key == item.IconKey)?.sprite,
+                    item_icons.FirstOrDefault(i => i.icon_key == item.IconKey)?.sprite_icon,
                     id => ItemSelected?.Invoke(id));
-                cards.Add(card);
+                item_cards.Add(card);
             }
 
-            for (int i = 0; i < filters.Length; i++)
+            for (int i = 0; i < btn_inventory_filters.Length; i++)
             {
-                filters[i].interactable = i != model.Filter;
+                btn_inventory_filters[i].interactable = i != model.Filter;
             }
 
-            inventoryStatus.text = model.InventoryState == LobbyLoadState.Loading
+            txt_inventory_status.text = model.InventoryState == LobbyLoadState.Loading
                 ? "Loading inventory..."
                 : model.InventoryState == LobbyLoadState.Error
                 ? model.InventoryError
                 : model.InventoryState == LobbyLoadState.Unavailable
                 ? "Inventory service not connected."
-                : $"{cards.Count} ITEMS";
-            emptyState.gameObject.SetActive(cards.Count == 0);
-            emptyState.text = model.InventoryState == LobbyLoadState.Ready
+                : $"{item_cards.Count} ITEMS";
+            txt_empty_state.gameObject.SetActive(item_cards.Count == 0);
+            txt_empty_state.text = model.InventoryState == LobbyLoadState.Ready
                 ? "No owned items in this category."
-                : inventoryStatus.text;
+                : txt_inventory_status.text;
         }
 
         public void ShowSection(LobbyWindow window)
@@ -245,15 +307,15 @@ namespace Zpd.Lobby
 
             if (!HasSection)
             {
-                sectionSelection = EventSystem.current?.currentSelectedGameObject;
+                game_object_section_selection = EventSystem.current?.currentSelectedGameObject;
             }
 
-            profilePanel.SetActive(window == LobbyWindow.Profile);
-            inventoryPanel.SetActive(window == LobbyWindow.Inventory);
-            sections.gameObject.SetActive(true);
+            game_object_profile_panel.SetActive(window == LobbyWindow.Profile);
+            game_object_inventory_panel.SetActive(window == LobbyWindow.Inventory);
+            canvas_group_sections.gameObject.SetActive(true);
             SyncInteraction(false);
             Select(
-                (window == LobbyWindow.Profile ? profilePanel : inventoryPanel).GetComponentInChildren<Button>().gameObject);
+                (window == LobbyWindow.Profile ? game_object_profile_panel : game_object_inventory_panel).GetComponentInChildren<Button>().gameObject);
         }
 
         public void CloseSection()
@@ -265,11 +327,11 @@ namespace Zpd.Lobby
                 return;
             }
 
-            sections.gameObject.SetActive(false);
-            profilePanel.SetActive(false);
-            inventoryPanel.SetActive(false);
+            canvas_group_sections.gameObject.SetActive(false);
+            game_object_profile_panel.SetActive(false);
+            game_object_inventory_panel.SetActive(false);
             SyncInteraction(false);
-            Select(sectionSelection);
+            Select(game_object_section_selection);
         }
 
         public void ShowItem(LobbyModel model, bool serviceAvailable)
@@ -283,51 +345,51 @@ namespace Zpd.Lobby
             }
 
             OpenModal();
-            modalTitle.text = item.Name;
+            txt_modal_title.text = item.Name;
             bool consumable = item.Kind == LobbyItemKind.Consumable;
-            modalDescription.text = (consumable ? "CONSUMABLE" : "EQUIPMENT") + "\n\n" + item.Description;
+            txt_modal_description.text = (consumable ? "CONSUMABLE" : "EQUIPMENT") + "\n\n" + item.Description;
 
             if (consumable && !serviceAvailable)
             {
-                modalDescription.text += "\n\nItem service not connected.";
+                txt_modal_description.text += "\n\nItem service not connected.";
             }
 
             if (model.IsUsingItem)
             {
-                modalDescription.text = "Requesting item use...";
+                txt_modal_description.text = "Requesting item use...";
             }
             else if (consumable && !string.IsNullOrEmpty(model.UseError))
             {
-                modalDescription.text += "\n\n" + model.UseError;
+                txt_modal_description.text += "\n\n" + model.UseError;
             }
 
-            quantityRoot.SetActive(consumable);
-            useButton.gameObject.SetActive(consumable);
-            quantitySlider.maxValue = Mathf.Max(1, item.Capacity);
-            quantitySlider.value = item.Quantity;
-            modalQuantity.text = "OWNED  " + item.Quantity;
-            useButton.interactable = serviceAvailable && model.CanUseSelected;
+            game_object_quantity_root.SetActive(consumable);
+            btn_use_item.gameObject.SetActive(consumable);
+            slider_quantity.maxValue = Mathf.Max(1, item.Capacity);
+            slider_quantity.value = item.Quantity;
+            txt_modal_quantity.text = "OWNED  " + item.Quantity;
+            btn_use_item.interactable = serviceAvailable && model.CanUseSelected;
         }
 
         public void ShowMultiPlay()
         {
             OpenModal();
-            modalTitle.text = "MULTI PLAY";
-            modalDescription.text = "Multiplayer gameplay is not available yet.";
-            quantityRoot.SetActive(false);
-            useButton.gameObject.SetActive(false);
+            txt_modal_title.text = "MULTI PLAY";
+            txt_modal_description.text = "Multiplayer gameplay is not available yet.";
+            game_object_quantity_root.SetActive(false);
+            btn_use_item.gameObject.SetActive(false);
         }
 
         private void OpenModal()
         {
             if (!HasModal)
             {
-                previousSelection = EventSystem.current?.currentSelectedGameObject;
+                game_object_previous_selection = EventSystem.current?.currentSelectedGameObject;
             }
 
-            modal.SetActive(true);
+            game_object_modal.SetActive(true);
             SyncInteraction(false);
-            Select(modal.GetComponentInChildren<Button>().gameObject);
+            Select(game_object_modal.GetComponentInChildren<Button>().gameObject);
         }
 
         public void CloseModal()
@@ -337,18 +399,18 @@ namespace Zpd.Lobby
                 return;
             }
 
-            modal.SetActive(false);
+            game_object_modal.SetActive(false);
             SyncInteraction(false);
-            Select(previousSelection);
+            Select(game_object_previous_selection);
         }
 
         public void SyncInteraction(bool socialVisible)
         {
-            home.interactable = !HasSection && !HasModal && !socialVisible;
-            sections.interactable = !HasModal;
+            canvas_group_home.interactable = !HasSection && !HasModal && !socialVisible;
+            canvas_group_sections.interactable = !HasModal;
         }
 
-        public void ShowStatus(string message) => status.text = message;
+        public void ShowStatus(string message) => txt_status.text = message;
 
         private static void Select(GameObject target)
         {

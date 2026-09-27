@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.InputSystem;
 using Zpd.Gameplay;
 using Zpd.Networking;
@@ -11,20 +12,22 @@ namespace Zpd.Lobby
     [RequireComponent(typeof(LoginView))]
     public sealed class LoginController : MonoBehaviour
     {
+        [FormerlySerializedAs("apiRoot")]
         [Header("Login API")]
-        public string apiRoot = ApiClient.DefaultRoot;
+        public string api_root = ApiClient.DefaultRoot;
 
+        [FormerlySerializedAs("timeoutSeconds")]
         [Min(1)]
-        public int timeoutSeconds = 15;
+        public int timeout_seconds = 15;
 
         public LoginView View => GetComponent<LoginView>();
         public bool IsBusy { get; private set; }
 
-        private CancellationTokenSource _lifetime;
+        private CancellationTokenSource cts_lifetime;
 
         private void OnEnable()
         {
-            _lifetime = new CancellationTokenSource();
+            cts_lifetime = new CancellationTokenSource();
             IsBusy = false;
 
             if (View != null && View.TryBindControls())
@@ -35,9 +38,9 @@ namespace Zpd.Lobby
 
         private void OnDisable()
         {
-            _lifetime?.Cancel();
-            _lifetime?.Dispose();
-            _lifetime = null;
+            cts_lifetime?.Cancel();
+            cts_lifetime?.Dispose();
+            cts_lifetime = null;
             IsBusy = false;
 
             if (View != null)
@@ -68,7 +71,7 @@ namespace Zpd.Lobby
 
             if (keyboard != null && keyboard.tabKey.wasPressedThisFrame && !IsBusy)
             {
-                if (View.loginId.isFocused)
+                if (View.input_login_id.isFocused)
                 {
                     View.FocusPassword();
                 }
@@ -97,14 +100,14 @@ namespace Zpd.Lobby
                 return;
             }
 
-            if (!AuthValidation.TryNormalizeLoginId(View.loginId.text, out string loginId))
+            if (!AuthValidation.TryNormalizeLoginId(View.input_login_id.text, out string loginId))
             {
                 View.Render(false, ApiErrorMessages.Get(ApiErrorCode.InvalidLoginId));
                 View.Focus();
                 return;
             }
 
-            string password = View.password.text;
+            string password = View.input_password.text;
 
             if (!AuthValidation.IsValidPassword(password))
             {
@@ -120,14 +123,14 @@ namespace Zpd.Lobby
             }
 
             IsBusy = true;
-            CancellationToken cancellation = _lifetime.Token;
+            CancellationToken cancellation = cts_lifetime.Token;
             View.Render(true, "Signing in...");
             View.ClearPassword();
 
             try
             {
                 var result = await AuthManager.Instance.LoginAsync(
-                    apiRoot, loginId, password, cancellation, timeoutSeconds);
+                    api_root, loginId, password, cancellation, timeout_seconds);
 
                 if (this == null || !isActiveAndEnabled || cancellation.IsCancellationRequested)
                 {
@@ -179,14 +182,14 @@ namespace Zpd.Lobby
                 return true;
             }
 
-            if (View != null && View.login != null)
+            if (View != null && View.btn_login != null)
             {
-                View.login.interactable = false;
+                View.btn_login.interactable = false;
             }
 
-            if (View != null && View.status != null)
+            if (View != null && View.txt_status != null)
             {
-                View.status.text = "The login screen is incomplete. Please reopen it.";
+                View.txt_status.text = "The login screen is incomplete. Please reopen it.";
             }
 
             Debug.LogError("Login screen bindings are missing. Assign ID, Password, Login and Status in LoginView.", this);

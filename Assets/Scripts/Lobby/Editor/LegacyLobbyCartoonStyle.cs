@@ -12,7 +12,7 @@ namespace Zpd.Lobby.Editor
     public static class LegacyLobbyCartoonStyle
     {
         public const string AtlasPath = "Assets/Resources/UI/Lobby/cartoon-ui-atlas.png";
-        private static readonly string[] Names =
+        private static readonly string[] atlas_sprite_names =
         {
             "Panel",
             "Card",
@@ -21,9 +21,9 @@ namespace Zpd.Lobby.Editor
             "Backpack",
             "Friends"
         };
-        private static readonly Color Ink = ColorOf("24192F");
-        private static readonly Color Cream = ColorOf("FFF2D8");
-        private static Sprite[] sprites;
+        private static readonly Color color_color_ink = ColorOf("24192F");
+        private static readonly Color color_color_cream = ColorOf("FFF2D8");
+        private static Sprite[] sprite_atlas_entries;
 
         [MenuItem("ZPD/Lobby/Legacy/Apply Cartoon Style to Open Lobby")]
         public static void ApplyToOpenScene()
@@ -111,7 +111,7 @@ namespace Zpd.Lobby.Editor
 
             foreach (var text in canvas.GetComponentsInChildren<Text>(true))
             {
-                text.color = Ink;
+                text.color = color_color_ink;
 
                 if (text.fontSize >= 19)
                 {
@@ -145,7 +145,7 @@ namespace Zpd.Lobby.Editor
                     continue;
                 }
 
-                text.color = Cream;
+                text.color = color_color_cream;
 
                 if (name == "Heading" || name == "Brand" || name == "Character Name")
                 {
@@ -164,7 +164,7 @@ namespace Zpd.Lobby.Editor
             profileLabel.rectTransform.sizeDelta = new Vector2(336, 44);
             profileLabel.rectTransform.anchoredPosition = new Vector2(0, 3);
 
-            foreach (var text in lobby.friends.GetComponentsInChildren<Text>(true))
+            foreach (var text in lobby.lobby_panel_friends.GetComponentsInChildren<Text>(true))
             {
                 if (text.name == "Name")
                 {
@@ -183,7 +183,7 @@ namespace Zpd.Lobby.Editor
                 }
             }
 
-            foreach (var item in lobby.inventory.GetComponentsInChildren<Button>(true).Where(b => b.name.StartsWith("Item ")))
+            foreach (var item in lobby.lobby_panel_inventory.GetComponentsInChildren<Button>(true).Where(b => b.name.StartsWith("Item ")))
             {
                 var icon = (RectTransform)item.transform.Find("Icon");
                 icon.sizeDelta = new Vector2(148, 60);
@@ -197,7 +197,7 @@ namespace Zpd.Lobby.Editor
 
         private static void Skin(Image image, string name, float pixelsPerUnit)
         {
-            image.sprite = sprites.Single(s => s.name == name);
+            image.sprite = sprite_atlas_entries.Single(s => s.name == name);
             image.type = Image.Type.Sliced;
             image.pixelsPerUnitMultiplier = pixelsPerUnit;
             image.color = Color.white;
@@ -215,7 +215,7 @@ namespace Zpd.Lobby.Editor
                 icon = go.GetComponent<Image>();
             }
 
-            icon.sprite = sprites.Single(s => s.name == name);
+            icon.sprite = sprite_atlas_entries.Single(s => s.name == name);
             icon.preserveAspect = true;
             icon.raycastTarget = false;
             icon.rectTransform.sizeDelta = new Vector2(46, 46);
@@ -265,9 +265,9 @@ namespace Zpd.Lobby.Editor
                 throw new InvalidOperationException("Missing illustrated UI atlas: " + AtlasPath);
             }
 
-            sprites = AssetDatabase.LoadAllAssetsAtPath(AtlasPath).OfType<Sprite>().ToArray();
+            sprite_atlas_entries = AssetDatabase.LoadAllAssetsAtPath(AtlasPath).OfType<Sprite>().ToArray();
 
-            if (sprites.Length == Names.Length && Names.All(n => sprites.Any(s => s.name == n)))
+            if (sprite_atlas_entries.Length == atlas_sprite_names.Length && atlas_sprite_names.All(n => sprite_atlas_entries.Any(s => s.name == n)))
             {
                 return;
             }
@@ -307,7 +307,7 @@ namespace Zpd.Lobby.Editor
 
                 if (minX > maxX || minY > maxY)
                 {
-                    throw new InvalidOperationException("Empty UI sprite cell: " + Names[i]);
+                    throw new InvalidOperationException("Empty UI sprite cell: " + atlas_sprite_names[i]);
                 }
 
                 minX = Mathf.Max(left, minX - 2);
@@ -316,7 +316,7 @@ namespace Zpd.Lobby.Editor
                 maxY = Mathf.Min(bottom + cellH - 1, maxY + 2);
                 rects[i] = new SpriteRect
                 {
-                    name = Names[i],
+                    name = atlas_sprite_names[i],
                     spriteID = GUID.Generate(),
                     alignment = SpriteAlignment.Center,
                     pivot = new Vector2(0.5f, 0.5f),
@@ -335,7 +335,7 @@ namespace Zpd.Lobby.Editor
             provider.Apply();
             importer.isReadable = false;
             importer.SaveAndReimport();
-            sprites = AssetDatabase.LoadAllAssetsAtPath(AtlasPath).OfType<Sprite>().ToArray();
+            sprite_atlas_entries = AssetDatabase.LoadAllAssetsAtPath(AtlasPath).OfType<Sprite>().ToArray();
         }
 
         private static Color ColorOf(string hex)

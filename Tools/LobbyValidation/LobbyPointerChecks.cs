@@ -24,7 +24,7 @@ public static class LobbyPointerChecks
         var lobby=UnityEngine.Object.FindFirstObjectByType<LobbyController>();
         foreach(var name in new[]{"Profile","Inventory Button","Friends"})
         {
-            var b=lobby.home.transform.Find(name).GetComponent<Button>();
+            var b=lobby.canvas_group_home.transform.Find(name).GetComponent<Button>();
             Debug.Log("Authored "+name+" calls="+b.onClick.GetPersistentEventCount()+" target="+b.onClick.GetPersistentTarget(0)+" method="+b.onClick.GetPersistentMethodName(0));
         }
         if(path.Contains("Snapshot")) { EditorSettings.serializationMode=SerializationMode.ForceText; EditorSceneManager.MarkSceneDirty(lobby.gameObject.scene); EditorSceneManager.SaveScene(lobby.gameObject.scene); }
@@ -65,28 +65,28 @@ public static class LobbyPointerChecks
             EditorApplication.QueuePlayerLoopUpdate();
 
             module.Process();
-            if(step==0) Move(c.home.transform.Find("Profile").GetComponent<Button>());
+            if(step==0) Move(c.canvas_group_home.transform.Find("Profile").GetComponent<Button>());
             if(step==1) { Debug.Log("Pointer value="+module.point.action.ReadValue<Vector2>()+" frame="+Time.frameCount); Press(); }
             if(step==2) Release();
             if(step==3)
             {
-                Assert(c.profilePanel.activeInHierarchy,"PlayerInfo did not open from mouse click");
-                Move(c.profilePanel.transform.Find("Close").GetComponent<Button>());
+                Assert(c.game_object_profile_panel.activeInHierarchy,"PlayerInfo did not open from mouse click");
+                Move(c.game_object_profile_panel.transform.Find("Close").GetComponent<Button>());
             }
             if(step==4) Press(); if(step==5) Release();
             if(step==6)
             {
-                Assert(!c.sections.gameObject.activeSelf,"PlayerInfo did not close");
-                Move(c.home.transform.Find("Inventory Button").GetComponent<Button>());
+                Assert(!c.canvas_group_sections.gameObject.activeSelf,"PlayerInfo did not close");
+                Move(c.canvas_group_home.transform.Find("Inventory Button").GetComponent<Button>());
             }
             if(step==7) Press(); if(step==8) Release();
             if(step==9)
             {
-                Assert(c.inventoryPanel.activeInHierarchy,"Inventory did not open from mouse click");
-                Move(c.inventoryPanel.transform.Find("Close").GetComponent<Button>());
+                Assert(c.game_object_inventory_panel.activeInHierarchy,"Inventory did not open from mouse click");
+                Move(c.game_object_inventory_panel.transform.Find("Close").GetComponent<Button>());
             }
             if(step==10) Press(); if(step==11) Release();
-            if(step==12) { Assert(!c.sections.gameObject.activeSelf,"Inventory did not close"); Finish("PASS: PlayerInfo and Inventory mouse clicks and close buttons through the Input System UI module",0); }
+            if(step==12) { Assert(!c.canvas_group_sections.gameObject.activeSelf,"Inventory did not close"); Finish("PASS: PlayerInfo and Inventory mouse clicks and close buttons through the Input System UI module",0); }
             step++;
         }
         catch(Exception e) { Finish("FAIL: "+e,1); }

@@ -52,21 +52,21 @@ namespace Zpd.Lobby.Editor
 
             var controller = canvas.gameObject.AddComponent<LoginController>();
             var view = controller.View;
-            view.loginId = CreateInput(panel.transform, "ID", "Enter your ID", 65, false);
-            view.password = CreateInput(panel.transform, "Password", "Enter your password", -40, true);
-            view.status = Label("Status", panel.transform, "Enter your ID and password.", 0, -105, 470, 40, 15, Ink);
+            view.input_login_id = CreateInput(panel.transform, "ID", "Enter your ID", 65, false);
+            view.input_password = CreateInput(panel.transform, "Password", "Enter your password", -40, true);
+            view.txt_status = Label("Status", panel.transform, "Enter your ID and password.", 0, -105, 470, 40, 15, Ink);
 
             var button = Box("Login", panel.transform, 0, -175, 440, 66, Color.white);
             Skin(button, "Battle");
-            view.login = button.gameObject.AddComponent<Button>();
-            view.login.targetGraphic = button;
+            view.btn_login = button.gameObject.AddComponent<Button>();
+            view.btn_login.targetGraphic = button;
             Label("Label", button.transform, "SIGN IN", 0, 0, 400, 56, 24, Ink);
-            UnityEventTools.AddPersistentListener(view.login.onClick, controller.Login);
+            UnityEventTools.AddPersistentListener(view.btn_login.onClick, controller.Login);
 
             Label("Footer", canvas.transform, "ZPD ACCOUNT", 0, -294, 600, 30, 14, new Color32(199, 180, 219, 255));
             var events = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule)).GetComponent<EventSystem>();
             events.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
-            events.firstSelectedGameObject = view.loginId.gameObject;
+            events.firstSelectedGameObject = view.input_login_id.gameObject;
             EditorSceneManager.SaveScene(scene, SceneNavigation.Login);
             EditorBuildSettings.scenes = new[]
             {
@@ -85,12 +85,12 @@ namespace Zpd.Lobby.Editor
 
         public static void AddChangePlayer(LobbyController controller)
         {
-            if (controller.home.transform.Find("Change Player") != null)
+            if (controller.canvas_group_home.transform.Find("Change Player") != null)
             {
                 return;
             }
 
-            var box = Box("Change Player", controller.home.transform, 430, -282, 280, 42, Color.white);
+            var box = Box("Change Player", controller.canvas_group_home.transform, 430, -282, 280, 42, Color.white);
             Skin(box, "Button");
             var button = box.gameObject.AddComponent<Button>();
             button.targetGraphic = box;

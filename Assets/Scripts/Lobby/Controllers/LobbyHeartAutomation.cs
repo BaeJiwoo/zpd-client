@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Zpd.Lobby
@@ -7,51 +8,52 @@ namespace Zpd.Lobby
     /// <summary>Automatic heart workflow, independent of visible rows. Transport is still log-only.</summary>
     public sealed class LobbyHeartAutomation : MonoBehaviour
     {
-        public Text feedback;
-        private readonly HashSet<string> received = new HashSet<string>();
-        private readonly HashSet<string> sent = new HashSet<string>();
-        private bool windowOpen;
-        private int revision;
+        [FormerlySerializedAs("feedback")]
+        public Text txt_feedback;
+        private readonly HashSet<string> attempted_receive_operation_ids = new HashSet<string>();
+        private readonly HashSet<string> attempted_send_operation_ids = new HashSet<string>();
+        private bool is_window_open;
+        private int eligibility_revision;
 
-        public int CurrentRevision => revision;
+        public int CurrentRevision => eligibility_revision;
 
         public void OpenWindow()
         {
-            windowOpen = true;
+            is_window_open = true;
             Refresh();
         }
 
         public void CloseWindow()
         {
-            windowOpen = false;
-            revision++; // Reject a late eligibility result after the drawer closes.
+            is_window_open = false;
+            eligibility_revision++; // Reject a late eligibility result after the drawer closes.
         }
 
         public void Refresh()
         {
-            if (!windowOpen)
+            if (!is_window_open)
             {
                 return;
             }
 
-            revision++;
+            eligibility_revision++;
             Debug.Log(
-                "[Lobby API stub] hearts.sync revision=" + revision + " / receive eligible hearts, then send to eligible friends (log only; no request sent)");
-            feedback.text = "Hearts sync automatically here. Service not connected.";
+                "[Lobby API stub] hearts.sync revision=" + eligibility_revision + " / receive eligible hearts, then send to eligible friends (log only; no request sent)");
+            txt_feedback.text = "Hearts sync automatically here. Service not connected.";
         }
 
         // Binding seam for a future service, not a response parser. Do not infer eligibility from UI rows.
 
         public void ApplyEligibility(int requestRevision, EligibleHeart[] inbox, EligibleHeart[] friends)
         {
-            if (!windowOpen || requestRevision != revision)
+            if (!is_window_open || requestRevision != eligibility_revision)
             {
                 return;
             }
 
-            Process(inbox, received, "hearts.receive");
-            Process(friends, sent, "hearts.send");
-            feedback.text = "Heart service not connected. No hearts were transferred.";
+            Process(inbox, attempted_receive_operation_ids, "hearts.receive");
+            Process(friends, attempted_send_operation_ids, "hearts.send");
+            txt_feedback.text = "Heart service not connected. No hearts were transferred.";
         }
 
         private static void Process(EligibleHeart[] entries, HashSet<string> attempted, string operation)
@@ -76,9 +78,9 @@ namespace Zpd.Lobby
         public void ResetForAccount()
         {
             CloseWindow();
-            received.Clear();
-            sent.Clear();
-            feedback.text = "Heart data: --";
+            attempted_receive_operation_ids.Clear();
+            attempted_send_operation_ids.Clear();
+            txt_feedback.text = "Heart data: --";
         }
     }
 }

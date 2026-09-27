@@ -9,7 +9,7 @@ The lobby opens only after a successful, validated server response.
 
 The client implements the contract below. The adjacent `zpd-server` currently
 provides TCP matchmaking, not an HTTP account service. Configure
-`LoginController.apiRoot` with an account service implementing this contract.
+`LoginController.api_root` with an account service implementing this contract.
 There is no local login fallback or built-in account/password database.
 
 The default root is `https://127.0.0.1:18080/api/v1`; timeout is 15 seconds.

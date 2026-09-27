@@ -16,9 +16,9 @@ namespace Zpd.Networking
 
         public string BaseUrl { get; }
 
-        private readonly TokenStorage _tokens;
-        private readonly AccountSession _session;
-        private readonly int _timeoutSeconds;
+        private readonly TokenStorage token_storage;
+        private readonly AccountSession account_session;
+        private readonly int request_timeout_seconds;
 
         public ApiClient(
             string baseUrl,
@@ -27,11 +27,11 @@ namespace Zpd.Networking
             AccountSession session = null)
         {
             BaseUrl = NormalizeRoot(baseUrl);
-            _tokens = tokens;
-            _session = session ?? tokens?.Current;
-            _timeoutSeconds = Math.Max(1, timeoutSeconds);
+            token_storage = tokens;
+            account_session = session ?? tokens?.Current;
+            request_timeout_seconds = Math.Max(1, timeoutSeconds);
 
-            if (_session != null && _session.ApiRoot != BaseUrl)
+            if (account_session != null && account_session.ApiRoot != BaseUrl)
             {
                 throw new ArgumentException("Request origin must match the authenticated API.");
             }
@@ -138,7 +138,7 @@ namespace Zpd.Networking
 
                 if (authenticated && request.responseCode == (long)HttpStatusCode.Unauthorized)
                 {
-                    _tokens.Invalidate(_session);
+                    token_storage.Invalidate(account_session);
                 }
 
                 return CreateResult<T>(request, json != null);
@@ -147,12 +147,12 @@ namespace Zpd.Networking
 
         private bool HasCurrentSession()
         {
-            if (_session != null && _session.IsExpired)
+            if (account_session != null && account_session.IsExpired)
             {
-                _tokens?.Invalidate(_session);
+                token_storage?.Invalidate(account_session);
             }
 
-            return _tokens != null && _tokens.IsCurrent(_session);
+            return token_storage != null && token_storage.IsCurrent(account_session);
         }
 
         private UnityWebRequest CreateRequest(
@@ -163,13 +163,13 @@ namespace Zpd.Networking
             try
             {
                 request.downloadHandler = new DownloadHandlerBuffer();
-                request.timeout = _timeoutSeconds;
+                request.timeout = request_timeout_seconds;
                 request.redirectLimit = 0;
                 request.SetRequestHeader("Accept", "application/json");
 
                 if (authenticated)
                 {
-                    request.SetRequestHeader("Authorization", "Bearer " + _session.AccessToken);
+                    request.SetRequestHeader("Authorization", "Bearer " + account_session.AccessToken);
                 }
 
                 if (json != null)

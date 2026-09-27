@@ -14,12 +14,12 @@ namespace Zpd.Lobby.Editor
     public static class LegacyLobbySceneBuilder
     {
         private const string Art = "Assets/Resources/Art/Rgsdev/";
-        private static readonly Color Background = Hex("121C2B");
-        private static readonly Color Surface = Hex("1D2C40");
-        private static readonly Color Card = Hex("293C53");
-        private static readonly Color Muted = Hex("A7B8CA");
-        private static readonly Color Accent = Hex("83DFC9");
-        private static Font font;
+        private static readonly Color color_color_background = Hex("121C2B");
+        private static readonly Color color_color_surface = Hex("1D2C40");
+        private static readonly Color color_color_card = Hex("293C53");
+        private static readonly Color color_color_muted = Hex("A7B8CA");
+        private static readonly Color color_color_accent = Hex("83DFC9");
+        private static Font font_ui;
 
         [MenuItem("ZPD/Lobby/Legacy/Create Lobby Scene")]
         public static void CreateLobbyScene()
@@ -37,13 +37,13 @@ namespace Zpd.Lobby.Editor
             // Resolve required art before touching the open scene.
 
             LoadSprites("Full body animated characters/Char 1/with hands/idle_0.png");
-            font = Resources.Load<Font>("Fonts/NexonLv1/NEXONLv1GothicRegular");
+            font_ui = Resources.Load<Font>("Fonts/NexonLv1/NEXONLv1GothicRegular");
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var cameraObject = new GameObject("Lobby Camera", typeof(Camera));
             cameraObject.tag = "MainCamera";
             var camera = cameraObject.GetComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = Background;
+            camera.backgroundColor = color_color_background;
             camera.orthographic = true;
             camera.transform.position = new Vector3(0, 0, -10);
 
@@ -61,7 +61,7 @@ namespace Zpd.Lobby.Editor
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             var root = Rect("Lobby", canvas.transform, 0, 0, 1280, 720);
             var controller = root.gameObject.AddComponent<LegacyLobbyController>();
-            var background = Box("Background", canvas.transform, 0, 0, 0, 0, Background);
+            var background = Box("Background", canvas.transform, 0, 0, 0, 0, color_color_background);
             Stretch(background.rectTransform);
             background.transform.SetAsFirstSibling();
             BuildHome(root, controller);
@@ -80,16 +80,16 @@ namespace Zpd.Lobby.Editor
 
             overlay.transform.SetParent(canvas.transform, false);
             Stretch((RectTransform)overlay.transform);
-            controller.backdrop = overlay.gameObject;
+            controller.game_object_backdrop = overlay.gameObject;
             var modalRoot = Rect("Panels", canvas.transform, 0, 0, 1280, 720);
             BuildProfile(modalRoot, controller);
             BuildFriends(modalRoot, controller);
             BuildInventory(modalRoot, controller);
             BuildCharacters(modalRoot, controller);
-            controller.profile.gameObject.SetActive(false);
-            controller.friends.gameObject.SetActive(false);
-            controller.inventory.gameObject.SetActive(false);
-            controller.characters.gameObject.SetActive(false);
+            controller.lobby_panel_profile.gameObject.SetActive(false);
+            controller.lobby_panel_friends.gameObject.SetActive(false);
+            controller.lobby_panel_inventory.gameObject.SetActive(false);
+            controller.lobby_panel_characters.gameObject.SetActive(false);
             overlay.gameObject.SetActive(false);
             var eventObject = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             eventObject.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
@@ -106,9 +106,9 @@ namespace Zpd.Lobby.Editor
 
         private static void BuildHome(RectTransform root, LegacyLobbyController c)
         {
-            Box("Header Rule", root, 0, 264, 1184, 2, Card);
+            Box("Header Rule", root, 0, 264, 1184, 2, color_color_card);
             Label("Brand", root, "ZPD / ARENA", -440, 306, 305, 40, 28, Color.white);
-            Label("Mode", root, "LOBBY", 395, 306, 395, 36, 16, Muted, TextAnchor.MiddleRight);
+            Label("Mode", root, "LOBBY", 395, 306, 395, 36, 16, color_color_muted, TextAnchor.MiddleRight);
             Button(
                 "Profile",
                 root,
@@ -117,9 +117,9 @@ namespace Zpd.Lobby.Editor
                 208,
                 360,
                 72,
-                Surface,
+                color_color_surface,
                 c.OpenProfile);
-            Button("Friends", root, "FRIENDS   /   SOCIAL  >", 437, 208, 310, 72, Surface, c.OpenFriends);
+            Button("Friends", root, "FRIENDS   /   SOCIAL  >", 437, 208, 310, 72, color_color_surface, c.OpenFriends);
             Label("Heading", root, "READY FOR\nTHE ARENA?", -402, 76, 380, 130, 42, Color.white);
             Label(
                 "Intro",
@@ -130,15 +130,15 @@ namespace Zpd.Lobby.Editor
                 360,
                 66,
                 18,
-                Muted);
-            Label("Character Tag", root, "LOCAL ART PREVIEW", 40, 200, 300, 40, 18, Accent, TextAnchor.MiddleCenter);
-            Box("Character Backplate", root, 40, -22, 320, 372, Surface);
-            Box("Character Accent", root, 40, -206, 320, 4, Accent);
+                color_color_muted);
+            Label("Character Tag", root, "LOCAL ART PREVIEW", 40, 200, 300, 40, 18, color_color_accent, TextAnchor.MiddleCenter);
+            Box("Character Backplate", root, 40, -22, 320, 372, color_color_surface);
+            Box("Character Accent", root, 40, -206, 320, 4, color_color_accent);
             Rect("Hero", root, 40, -12, 240, 300);
             Label("Character Name", root, "CHARACTER: --", 40, -243, 300, 38, 22, Color.white, TextAnchor.MiddleCenter);
-            var loadout = Box("Current Loadout", root, 442, -22, 300, 300, Surface).transform;
-            Label("Title", loadout, "CURRENT LOADOUT", 0, 113, 260, 30, 17, Accent);
-            Label("Weapon Placeholder", loadout, "--", 0, 36, 206, 102, 42, Muted, TextAnchor.MiddleCenter);
+            var loadout = Box("Current Loadout", root, 442, -22, 300, 300, color_color_surface).transform;
+            Label("Title", loadout, "CURRENT LOADOUT", 0, 113, 260, 30, 17, color_color_accent);
+            Label("Weapon Placeholder", loadout, "--", 0, 36, 206, 102, 42, color_color_muted, TextAnchor.MiddleCenter);
             Label(
                 "Weapon Name",
                 loadout,
@@ -159,9 +159,9 @@ namespace Zpd.Lobby.Editor
                 260,
                 55,
                 16,
-                Muted,
+                color_color_muted,
                 TextAnchor.MiddleCenter);
-            Button("Inventory", root, "INVENTORY   ^", -411, -286, 360, 62, Card, c.OpenInventory);
+            Button("Inventory", root, "INVENTORY   ^", -411, -286, 360, 62, color_color_card, c.OpenInventory);
             Button(
                 "Enter Battle",
                 root,
@@ -172,10 +172,10 @@ namespace Zpd.Lobby.Editor
                 82,
                 Hex("EAB574"),
                 c.EnterBattle,
-                Background,
+                color_color_background,
                 25);
-            Button("Change Character", root, "CHANGE CHARACTER", 40, -292, 280, 48, Card, c.OpenCharacters, null, 17);
-            c.status = Label("Status", root, "Service not connected. Player data: --", -252, -337, 680, 26, 13, Muted);
+            Button("Change Character", root, "CHANGE CHARACTER", 40, -292, 280, 48, color_color_card, c.OpenCharacters, null, 17);
+            c.txt_status = Label("Status", root, "Service not connected. Player data: --", -252, -337, 680, 26, 13, color_color_muted);
             Label(
                 "Art Credit",
                 root,
@@ -185,18 +185,18 @@ namespace Zpd.Lobby.Editor
                 310,
                 26,
                 12,
-                Muted,
+                color_color_muted,
                 TextAnchor.MiddleRight);
         }
 
         private static void BuildProfile(Transform root, LegacyLobbyController c)
         {
-            var panel = Panel("User Profile", root, 0, 0, 650, 476, new Vector2(0, -60), out c.View.profile);
+            var panel = Panel("User Profile", root, 0, 0, 650, 476, new Vector2(0, -60), out c.View.lobby_panel_profile);
             Label("Title", panel, "PLAYER PROFILE", -60, 186, 440, 44, 28, Color.white);
-            Button("Close", panel, "X", 271, 186, 44, 44, Card, c.ClosePanel);
+            Button("Close", panel, "X", 271, 186, 44, 44, color_color_card, c.ClosePanel);
             Rect("Avatar", panel, -191, 21, 130, 164);
             Label("Player", panel, "PLAYER: --", 80, 89, 310, 45, 30, Color.white);
-            Label("Level", panel, "LEVEL: --", 80, 43, 310, 34, 18, Accent);
+            Label("Level", panel, "LEVEL: --", 80, 43, 310, 34, 18, color_color_accent);
             Label(
                 "Record",
                 panel,
@@ -216,36 +216,36 @@ namespace Zpd.Lobby.Editor
                 560,
                 66,
                 16,
-                Muted,
+                color_color_muted,
                 TextAnchor.MiddleCenter);
         }
 
         private static void BuildFriends(Transform root, LegacyLobbyController c)
         {
-            var panel = Panel("Friends Drawer", root, 347, 0, 570, 704, new Vector2(600, 0), out c.View.friends);
+            var panel = Panel("Friends Drawer", root, 347, 0, 570, 704, new Vector2(600, 0), out c.View.lobby_panel_friends);
             Label("Title", panel, "SOCIAL", -47, 302, 420, 42, 30, Color.white);
-            Button("Close", panel, "X", 239, 302, 44, 44, Card, c.ClosePanel);
-            Label("Subtitle", panel, "FRIENDS: --   /   HEARTS: --", -83, 253, 348, 30, 15, Muted);
-            Button("Refresh Social", panel, "REFRESH", 186, 253, 142, 40, Card, c.RefreshSocial, null, 15);
-            c.friendTabs = new[]
+            Button("Close", panel, "X", 239, 302, 44, 44, color_color_card, c.ClosePanel);
+            Label("Subtitle", panel, "FRIENDS: --   /   HEARTS: --", -83, 253, 348, 30, 15, color_color_muted);
+            Button("Refresh Social", panel, "REFRESH", 186, 253, 142, 40, color_color_card, c.RefreshSocial, null, 15);
+            c.btn_friend_tabs = new[]
             {
-                Button("My Friends Tab", panel, "FRIENDS", -195, 196, 122, 48, Card, c.ShowMyFriends, null, 13),
-                Button("Search Tab", panel, "SEARCH", -65, 196, 122, 48, Card, c.ShowSearch, null, 13),
-                Button("Recent Tab", panel, "SUGGESTED", 65, 196, 122, 48, Card, c.ShowRecent, null, 13),
-                Button("Hearts Tab", panel, "HEARTS", 195, 196, 122, 48, Card, c.ShowHearts, null, 13)
+                Button("My Friends Tab", panel, "FRIENDS", -195, 196, 122, 48, color_color_card, c.ShowMyFriends, null, 13),
+                Button("Search Tab", panel, "SEARCH", -65, 196, 122, 48, color_color_card, c.ShowSearch, null, 13),
+                Button("Recent Tab", panel, "SUGGESTED", 65, 196, 122, 48, color_color_card, c.ShowRecent, null, 13),
+                Button("Hearts Tab", panel, "HEARTS", 195, 196, 122, 48, color_color_card, c.ShowHearts, null, 13)
             };
             var mine = Rect("My Friends Page", panel, 0, -50, 514, 414);
             var search = Rect("Search Page", panel, 0, -50, 514, 414);
             var recent = Rect("Friend Suggestions Page", panel, 0, -50, 514, 414);
             var hearts = Rect("Heart Inbox Page", panel, 0, -50, 514, 414);
-            c.friendPages = new[]
+            c.game_object_friend_pages = new[]
             {
                 mine.gameObject,
                 search.gameObject,
                 recent.gameObject,
                 hearts.gameObject
             };
-            c.socialStatus = Label(
+            c.txt_social_status = Label(
                 "Preview Notice",
                 panel,
                 "Service not connected. Player data and eligibility: --",
@@ -254,10 +254,10 @@ namespace Zpd.Lobby.Editor
                 504,
                 40,
                 13,
-                Muted);
-            c.heartAutomation = c.gameObject.AddComponent<LobbyHeartAutomation>();
-            c.heartAutomation.feedback = c.socialStatus;
-            c.socialStatus.text = "Hearts sync automatically here. Service not connected.";
+                color_color_muted);
+            c.lobby_heart_automation = c.gameObject.AddComponent<LobbyHeartAutomation>();
+            c.lobby_heart_automation.txt_feedback = c.txt_social_status;
+            c.txt_social_status.text = "Hearts sync automatically here. Service not connected.";
             Label(
                 "Data State",
                 mine,
@@ -267,8 +267,8 @@ namespace Zpd.Lobby.Editor
                 496,
                 52,
                 15,
-                Muted);
-            SocialRows(mine, c.socialStatus, LobbySocialAction.SendHeart, "AUTO", 88);
+                color_color_muted);
+            SocialRows(mine, c.txt_social_status, LobbySocialAction.SendHeart, "AUTO", 88);
             Label(
                 "Data State",
                 recent,
@@ -278,8 +278,8 @@ namespace Zpd.Lobby.Editor
                 496,
                 58,
                 15,
-                Muted);
-            SocialRows(recent, c.socialStatus, LobbySocialAction.SendFriendRequest, "ADD FRIEND", 88);
+                color_color_muted);
+            SocialRows(recent, c.txt_social_status, LobbySocialAction.SendFriendRequest, "ADD FRIEND", 88);
             Label(
                 "Data State",
                 hearts,
@@ -289,12 +289,12 @@ namespace Zpd.Lobby.Editor
                 496,
                 58,
                 15,
-                Muted);
-            SocialRows(hearts, c.socialStatus, LobbySocialAction.ReceiveHeart, "AUTO", 88);
-            var inputBox = Box("Player Search", search, -61, 174, 378, 50, Background);
-            c.searchInput = inputBox.gameObject.AddComponent<InputField>();
-            c.searchInput.characterLimit = 32;
-            c.searchInput.lineType = InputField.LineType.SingleLine;
+                color_color_muted);
+            SocialRows(hearts, c.txt_social_status, LobbySocialAction.ReceiveHeart, "AUTO", 88);
+            var inputBox = Box("Player Search", search, -61, 174, 378, 50, color_color_background);
+            c.input_search = inputBox.gameObject.AddComponent<InputField>();
+            c.input_search.characterLimit = 32;
+            c.input_search.lineType = InputField.LineType.SingleLine;
             var inputText = Label("Text", inputBox.transform, "", 0, 0, 334, 42, 17, Color.white);
             inputText.supportRichText = false;
             var placeholder = Label(
@@ -306,12 +306,12 @@ namespace Zpd.Lobby.Editor
                 334,
                 42,
                 16,
-                Muted);
-            c.searchInput.textComponent = inputText;
-            c.searchInput.placeholder = placeholder;
-            c.searchInput.targetGraphic = inputBox;
-            Button("Search Players", search, "GO", 194, 174, 112, 50, Accent, c.SearchFriends, Background);
-            c.searchStatus = Label(
+                color_color_muted);
+            c.input_search.textComponent = inputText;
+            c.input_search.placeholder = placeholder;
+            c.input_search.targetGraphic = inputBox;
+            Button("Search Players", search, "GO", 194, 174, 112, 50, color_color_accent, c.SearchFriends, color_color_background);
+            c.txt_search_status = Label(
                 "Search Status",
                 search,
                 "Search results unavailable until connected.",
@@ -320,8 +320,8 @@ namespace Zpd.Lobby.Editor
                 496,
                 42,
                 14,
-                Muted);
-            SocialRows(search, c.searchStatus, LobbySocialAction.SendFriendRequest, "ADD FRIEND", 33, 2);
+                color_color_muted);
+            SocialRows(search, c.txt_search_status, LobbySocialAction.SendFriendRequest, "ADD FRIEND", 33, 2);
             search.gameObject.SetActive(false);
             recent.gameObject.SetActive(false);
             hearts.gameObject.SetActive(false);
@@ -337,16 +337,16 @@ namespace Zpd.Lobby.Editor
         {
             for (int i = 0; i < count; i++)
             {
-                var row = Box("Player Placeholder " + (i + 1), parent, 0, top - i * 96, 498, 86, Card).rectTransform;
+                var row = Box("Player Placeholder " + (i + 1), parent, 0, top - i * 96, 498, 86, color_color_card).rectTransform;
                 var slot = row.gameObject.AddComponent<LobbySocialSlot>();
-                slot.action = action;
-                slot.feedback = feedback;
-                slot.playerName = Label("Player Name", row, "--", -81, 13, 270, 26, 18, Color.white);
-                slot.detail = Label("Player Detail", row, "Player data: --", -81, -14, 270, 24, 13, Muted);
+                slot.social_action = action;
+                slot.txt_feedback = feedback;
+                slot.txt_player_name = Label("Player Name", row, "--", -81, 13, 270, 26, 18, Color.white);
+                slot.txt_detail = Label("Player Detail", row, "Player data: --", -81, -14, 270, 24, 13, color_color_muted);
 
                 if (action == LobbySocialAction.SendFriendRequest)
                 {
-                    slot.actionButton = Button(
+                    slot.btn_action = Button(
                         "Player Action",
                         row,
                         actionLabel,
@@ -354,7 +354,7 @@ namespace Zpd.Lobby.Editor
                         0,
                         148,
                         48,
-                        Card,
+                        color_color_card,
                         slot.RequestAction,
                         null,
                         12);
@@ -370,7 +370,7 @@ namespace Zpd.Lobby.Editor
                         148,
                         48,
                         13,
-                        Muted,
+                        color_color_muted,
                         TextAnchor.MiddleCenter);
                 }
 
@@ -380,15 +380,15 @@ namespace Zpd.Lobby.Editor
 
         private static void BuildInventory(Transform root, LegacyLobbyController c)
         {
-            var panel = Panel("Inventory Drawer", root, 0, -84, 1264, 536, new Vector2(0, -560), out c.View.inventory);
+            var panel = Panel("Inventory Drawer", root, 0, -84, 1264, 536, new Vector2(0, -560), out c.View.lobby_panel_inventory);
             Label("Title", panel, "INVENTORY", -340, 218, 520, 44, 30, Color.white);
-            Button("Close", panel, "X", 586, 218, 44, 44, Card, c.ClosePanel);
-            Label("Equipped Title", panel, "EQUIPPED: --", -439, 153, 322, 32, 17, Accent);
-            var equipment = Box("Equipped Weapon", panel, -439, -10, 322, 270, Background).transform;
-            Label("Weapon Placeholder", equipment, "--", 0, 39, 256, 126, 42, Muted, TextAnchor.MiddleCenter);
+            Button("Close", panel, "X", 586, 218, 44, 44, color_color_card, c.ClosePanel);
+            Label("Equipped Title", panel, "EQUIPPED: --", -439, 153, 322, 32, 17, color_color_accent);
+            var equipment = Box("Equipped Weapon", panel, -439, -10, 322, 270, color_color_background).transform;
+            Label("Weapon Placeholder", equipment, "--", 0, 39, 256, 126, 42, color_color_muted, TextAnchor.MiddleCenter);
             Label("Name", equipment, "ITEM: --", 0, -52, 270, 35, 23, Color.white, TextAnchor.MiddleCenter);
-            Label("Slot", equipment, "EQUIPMENT DATA UNAVAILABLE", 0, -96, 290, 30, 14, Accent, TextAnchor.MiddleCenter);
-            Label("Items Title", panel, "COLLECTION: -- / DATA UNAVAILABLE", 188, 153, 790, 32, 17, Accent);
+            Label("Slot", equipment, "EQUIPMENT DATA UNAVAILABLE", 0, -96, 290, 30, 14, color_color_accent, TextAnchor.MiddleCenter);
+            Label("Items Title", panel, "COLLECTION: -- / DATA UNAVAILABLE", 188, 153, 790, 32, 17, color_color_accent);
             var content = ScrollContent("Item Grid", panel, 188, -20, 800, 296, 800, 440);
             var grid = content.gameObject.AddComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(184, 132);
@@ -400,14 +400,14 @@ namespace Zpd.Lobby.Editor
             for (int i = 0; i < 12; i++)
             {
                 string id = "Placeholder " + (i + 1).ToString("00");
-                var item = Button("Item " + id, content, "", 0, 0, 184, 132, Card, null);
+                var item = Button("Item " + id, content, "", 0, 0, 184, 132, color_color_card, null);
                 UnityEventTools.AddStringPersistentListener(item.onClick, c.InspectItem, "");
                 item.interactable = false;
-                Label("Icon", item.transform, "--", 0, 13, 154, 70, 28, Muted, TextAnchor.MiddleCenter);
+                Label("Icon", item.transform, "--", 0, 13, 154, 70, 28, color_color_muted, TextAnchor.MiddleCenter);
                 Label("Name", item.transform, "ITEM: --", 0, -39, 166, 26, 14, Color.white, TextAnchor.MiddleCenter);
             }
 
-            c.itemDetails = Label(
+            c.txt_item_details = Label(
                 "Item Details",
                 panel,
                 "Inventory data unavailable. Item slots do not indicate owned items.",
@@ -416,16 +416,16 @@ namespace Zpd.Lobby.Editor
                 1040,
                 40,
                 16,
-                Muted);
+                color_color_muted);
         }
 
         private static void BuildCharacters(Transform root, LegacyLobbyController c)
         {
-            var panel = Panel("Character Selection", root, 0, 0, 1080, 620, new Vector2(0, -100), out c.View.characters);
+            var panel = Panel("Character Selection", root, 0, 0, 1080, 620, new Vector2(0, -100), out c.View.lobby_panel_characters);
             var picker = panel.gameObject.AddComponent<LobbyCharacterPicker>();
-            c.characterPicker = picker;
+            c.lobby_character_picker = picker;
             Label("Title", panel, "CHANGE CHARACTER", -115, 255, 770, 44, 30, Color.white);
-            Button("Close", panel, "X", 490, 255, 44, 44, Card, c.ClosePanel);
+            Button("Close", panel, "X", 490, 255, 44, 44, color_color_card, c.ClosePanel);
             Label(
                 "Subtitle",
                 panel,
@@ -435,15 +435,15 @@ namespace Zpd.Lobby.Editor
                 996,
                 42,
                 17,
-                Muted);
-            picker.slots = new LobbyCharacterPicker.Slot[4];
+                color_color_muted);
+            picker.character_slots = new LobbyCharacterPicker.Slot[4];
             var hero = c.transform.Find("Hero");
-            var avatar = c.profile.transform.Find("Avatar");
+            var avatar = c.lobby_panel_profile.transform.Find("Avatar");
 
             for (int i = 0; i < 4; i++)
             {
                 string path = "Full body animated characters/Char " + (i + 1) + "/with hands/idle_0.png";
-                var card = Button("Character Option " + (i + 1), panel, "", -375 + i * 250, 22, 226, 270, Card, null);
+                var card = Button("Character Option " + (i + 1), panel, "", -375 + i * 250, 22, 226, 270, color_color_card, null);
                 UnityEventTools.AddIntPersistentListener(card.onClick, picker.Preview, i);
                 Composite("Character Art", card.transform, path, 0, 23, 162, 170);
                 var previewLabel = Label(
@@ -466,22 +466,22 @@ namespace Zpd.Lobby.Editor
                     190,
                     24,
                     14,
-                    Muted,
+                    color_color_muted,
                     TextAnchor.MiddleCenter);
                 string child = "Character " + (i + 1);
                 Composite(child, hero, path, 0, 0, 240, 300);
                 Composite(child, avatar, path, 0, 0, 130, 164);
-                picker.slots[i] = new LobbyCharacterPicker.Slot
+                picker.character_slots[i] = new LobbyCharacterPicker.Slot
                 {
-                    artKey = "char-" + (i + 1),
-                    state = ownership,
-                    previewLabel = previewLabel,
-                    lobbyArt = hero.Find(child).gameObject,
-                    profileArt = avatar.Find(child).gameObject
+                    art_key = "char-" + (i + 1),
+                    txt_state = ownership,
+                    txt_preview = previewLabel,
+                    game_object_lobby_art = hero.Find(child).gameObject,
+                    game_object_profile_art = avatar.Find(child).gameObject
                 };
             }
 
-            picker.feedback = Label(
+            picker.txt_feedback = Label(
                 "Character Status",
                 panel,
                 "Ownership and current character: --",
@@ -490,8 +490,8 @@ namespace Zpd.Lobby.Editor
                 660,
                 88,
                 17,
-                Muted);
-            picker.applyButton = Button(
+                color_color_muted);
+            picker.btn_apply = Button(
                 "Apply Character",
                 panel,
                 "APPLY CHARACTER",
@@ -499,12 +499,12 @@ namespace Zpd.Lobby.Editor
                 -251,
                 300,
                 48,
-                Accent,
+                color_color_accent,
                 picker.RequestChange,
                 null,
                 17);
-            picker.currentCharacter = c.transform.Find("Character Name").GetComponent<Text>();
-            picker.homeTag = c.transform.Find("Character Tag").GetComponent<Text>();
+            picker.txt_current_character = c.transform.Find("Character Name").GetComponent<Text>();
+            picker.txt_home_tag = c.transform.Find("Character Tag").GetComponent<Text>();
             picker.ResetServerState();
         }
 
@@ -518,9 +518,9 @@ namespace Zpd.Lobby.Editor
             Vector2 offset,
             out LobbyPanel behavior)
         {
-            var rect = Box(name, parent, x, y, w, h, Surface).rectTransform;
+            var rect = Box(name, parent, x, y, w, h, color_color_surface).rectTransform;
             behavior = rect.gameObject.AddComponent<LobbyPanel>();
-            behavior.hiddenOffset = offset;
+            behavior.hidden_offset = offset;
             return rect;
         }
 
@@ -536,7 +536,7 @@ namespace Zpd.Lobby.Editor
         {
             var scrollRect = Rect(name, parent, x, y, w, h);
             var scroll = scrollRect.gameObject.AddComponent<ScrollRect>();
-            var viewport = Box("Viewport", scrollRect, 0, 0, w, h, Background).rectTransform;
+            var viewport = Box("Viewport", scrollRect, 0, 0, w, h, color_color_background).rectTransform;
             viewport.gameObject.AddComponent<RectMask2D>();
             var content = Rect("Content", viewport, 0, 0, contentW, contentH);
             content.anchorMin = content.anchorMax = new Vector2(0.5f, 1);
@@ -626,7 +626,7 @@ namespace Zpd.Lobby.Editor
             TextAnchor alignment = TextAnchor.MiddleLeft)
         {
             var text = Rect(name, parent, x, y, w, h).gameObject.AddComponent<Text>();
-            text.font = font;
+            text.font = font_ui;
             text.text = value;
             text.fontSize = size;
             text.color = color;
@@ -656,7 +656,7 @@ namespace Zpd.Lobby.Editor
             colors.highlightedColor = new Color(1.15f, 1.15f, 1.15f);
             colors.selectedColor = new Color(1.15f, 1.15f, 1.15f);
             colors.pressedColor = new Color(0.75f, 0.85f, 0.9f);
-            colors.disabledColor = Accent;
+            colors.disabledColor = color_color_accent;
             button.colors = colors;
 
             if (label.Length > 0)
@@ -700,7 +700,7 @@ namespace Zpd.Lobby.Editor
         {
             var c = UnityEngine.Object.FindFirstObjectByType<LegacyLobbyController>();
 
-            if (c == null || c.profile == null || c.friends == null || c.inventory == null || c.characters == null || c.characterPicker == null || c.backdrop == null)
+            if (c == null || c.lobby_panel_profile == null || c.lobby_panel_friends == null || c.lobby_panel_inventory == null || c.lobby_panel_characters == null || c.lobby_character_picker == null || c.game_object_backdrop == null)
             {
                 throw new InvalidOperationException("Lobby scene has missing references.");
             }
@@ -715,23 +715,23 @@ namespace Zpd.Lobby.Editor
                 }
             }
 
-            if (c.friendPages.Length != 4 || c.friendTabs.Length != 4 || c.searchInput == null || c.searchStatus == null || c.itemDetails == null)
+            if (c.game_object_friend_pages.Length != 4 || c.btn_friend_tabs.Length != 4 || c.input_search == null || c.txt_search_status == null || c.txt_item_details == null)
             {
                 throw new InvalidOperationException("Incomplete lobby panels.");
             }
 
-            if (c.inventory.GetComponentInChildren<GridLayoutGroup>(true).transform.childCount != 12)
+            if (c.lobby_panel_inventory.GetComponentInChildren<GridLayoutGroup>(true).transform.childCount != 12)
             {
                 throw new InvalidOperationException("Expected 12 authored item slots.");
             }
 
-            if (c.characterPicker.slots.Length != 4 || c.characterPicker.applyButton.interactable)
+            if (c.lobby_character_picker.character_slots.Length != 4 || c.lobby_character_picker.btn_apply.interactable)
             {
                 throw new InvalidOperationException(
                     "Expected four local previews and disabled character apply before server data.");
             }
 
-            if (c.heartAutomation == null || c.friends.GetComponentsInChildren<LobbySocialSlot>(true).Any(s => s.actionButton != null && s.actionButton.interactable))
+            if (c.lobby_heart_automation == null || c.lobby_panel_friends.GetComponentsInChildren<LobbySocialSlot>(true).Any(s => s.btn_action != null && s.btn_action.interactable))
             {
                 throw new InvalidOperationException("Social actions must start disabled without service data.");
             }

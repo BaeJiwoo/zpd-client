@@ -16,11 +16,11 @@ namespace Zpd.Defense.Editor
     public static class DefenseSceneBuilder
     {
         private const string Art = "Assets/Resources/Art/Rgsdev/";
-        private static Sprite solid;
-        private static Sprite[] ui;
-        private static Font font;
-        private static Material spriteMaterial;
-        private static readonly Color Ink = Hex("24192F");
+        private static Sprite sprite_solid;
+        private static Sprite[] sprite_ui_atlas;
+        private static Font font_ui;
+        private static Material material_sprite;
+        private static readonly Color color_color_ink = Hex("24192F");
 
         [MenuItem("ZPD/Defense/Create Solo Defense Scene")]
         public static void CreateScene()
@@ -35,9 +35,9 @@ namespace Zpd.Defense.Editor
                 return;
             }
 
-            ui = AssetDatabase.LoadAllAssetsAtPath("Assets/Resources/UI/Lobby/cartoon-ui-atlas.png").OfType<Sprite>().ToArray();
+            sprite_ui_atlas = AssetDatabase.LoadAllAssetsAtPath("Assets/Resources/UI/Lobby/cartoon-ui-atlas.png").OfType<Sprite>().ToArray();
 
-            if (!ui.Any(s => s.name == "Panel"))
+            if (!sprite_ui_atlas.Any(s => s.name == "Panel"))
             {
                 throw new InvalidOperationException("Import the lobby UI atlas before building Defense.");
             }
@@ -46,9 +46,9 @@ namespace Zpd.Defense.Editor
             PrepareAssets();
             const string fontPath = "Assets/Resources/Fonts/NexonLv1/NEXONLv1GothicRegular.ttf";
             AssetDatabase.ImportAsset(fontPath, ImportAssetOptions.ForceSynchronousImport);
-            font = AssetDatabase.LoadAssetAtPath<Font>(fontPath);
+            font_ui = AssetDatabase.LoadAssetAtPath<Font>(fontPath);
 
-            if (font == null)
+            if (font_ui == null)
             {
                 throw new InvalidOperationException("Import the bundled NEXON Lv.1 Gothic font first.");
             }
@@ -57,18 +57,18 @@ namespace Zpd.Defense.Editor
             var root = new GameObject("Solo Defense");
             new GameObject("Game Session Tracker", typeof(GameSessionTracker));
             var game = root.AddComponent<DefenseGame>();
-            game.rewards = root.AddComponent<DefenseRewardClient>();
-            game.resultUpload = root.AddComponent<GameResultUploadClient>();
-            game.supplies = root.AddComponent<DefenseSupplies>();
-            game.supplies.game = game;
-            game.audioEffects = root.AddComponent<DefenseAudio>();
-            game.audioEffects.combat = new GameObject("Combat Audio", typeof(AudioSource)).GetComponent<AudioSource>();
-            game.audioEffects.feedback = new GameObject("Feedback Audio", typeof(AudioSource)).GetComponent<AudioSource>();
+            game.defense_reward_client = root.AddComponent<DefenseRewardClient>();
+            game.game_result_upload_client = root.AddComponent<GameResultUploadClient>();
+            game.defense_supplies = root.AddComponent<DefenseSupplies>();
+            game.defense_supplies.defense_game = game;
+            game.defense_audio = root.AddComponent<DefenseAudio>();
+            game.defense_audio.audio_source_combat = new GameObject("Combat Audio", typeof(AudioSource)).GetComponent<AudioSource>();
+            game.defense_audio.audio_source_feedback = new GameObject("Feedback Audio", typeof(AudioSource)).GetComponent<AudioSource>();
 
             foreach (var source in new[]
             {
-                game.audioEffects.combat,
-                game.audioEffects.feedback
+                game.defense_audio.audio_source_combat,
+                game.defense_audio.audio_source_feedback
             }
 
             )
@@ -78,7 +78,7 @@ namespace Zpd.Defense.Editor
                 source.spatialBlend = 0;
             }
 
-            game.audioEffects.clips = DefenseSoundBuilder.CreateClips();
+            game.defense_audio.audio_clip_cues = DefenseSoundBuilder.CreateClips();
             var camera = new GameObject("Arena Camera", typeof(Camera)).GetComponent<Camera>();
             camera.tag = "MainCamera";
             camera.gameObject.AddComponent<AudioListener>();
@@ -87,7 +87,7 @@ namespace Zpd.Defense.Editor
             camera.orthographicSize = 7.2f;
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = Hex("77914A");
-            game.worldCamera = camera;
+            game.camera_world = camera;
             var arena = new GameObject("Arena").transform;
             arena.SetParent(root.transform);
             const string meadowPath = "Assets/Resources/Art/Defense/last-signal-meadow.png";
@@ -106,29 +106,29 @@ namespace Zpd.Defense.Editor
                 AssetDatabase.LoadAssetAtPath<Sprite>(meadowPath),
                 14.6f,
                 -20);
-            game.beacon = new GameObject("Defense Beacon").transform;
-            game.beacon.SetParent(root.transform);
+            game.transform_beacon = new GameObject("Defense Beacon").transform;
+            game.transform_beacon.SetParent(root.transform);
             BuildBeaconVisual(game);
-            game.player = new GameObject("Player").transform;
-            game.player.SetParent(root.transform);
-            game.player.position = new Vector2(0, -2.2f);
-            game.playerArt = Composite(
+            game.transform_player = new GameObject("Player").transform;
+            game.transform_player.SetParent(root.transform);
+            game.transform_player.position = new Vector2(0, -2.2f);
+            game.transform_player_art = Composite(
                 "Character Art",
-                game.player,
+                game.transform_player,
                 "Full body animated characters/Char 1/with hands/idle_0.png",
                 1.25f,
                 10);
-            game.weapon = new GameObject("Aim Pivot").transform;
-            game.weapon.SetParent(game.player, false);
-            var gun = WorldSprite("Weapon", game.weapon, Load("Weapons/weaponR1.png")[0], 0.38f, 15);
+            game.transform_weapon = new GameObject("Aim Pivot").transform;
+            game.transform_weapon.SetParent(game.transform_player, false);
+            var gun = WorldSprite("Weapon", game.transform_weapon, Load("Weapons/weaponR1.png")[0], 0.38f, 15);
             gun.transform.localPosition = new Vector2(0.57f, -0.06f);
-            game.supplies.weaponRenderer = gun;
-            game.supplies.baseWeaponSprite = Load("Weapons/weaponR1.png")[0];
-            game.crosshair = WorldSprite("Aim Reticle", root.transform, Load("Extras/crosshair.png")[0], 0.4f, 30).transform;
+            game.defense_supplies.sprite_renderer_weapon = gun;
+            game.defense_supplies.sprite_base_weapon = Load("Weapons/weaponR1.png")[0];
+            game.transform_crosshair = WorldSprite("Aim Reticle", root.transform, Load("Extras/crosshair.png")[0], 0.4f, 30).transform;
 
             var enemyPool = new GameObject("Enemy Pool - 48 authored slots").transform;
             enemyPool.SetParent(root.transform);
-            game.enemies = new DefenseGame.EnemySlot[48];
+            game.enemy_slots = new DefenseGame.EnemySlot[48];
             string[] enemies =
             {
                 "Enemy 1",
@@ -136,7 +136,7 @@ namespace Zpd.Defense.Editor
                 "Enemy 4"
             };
 
-            for (int i = 0; i < game.enemies.Length; i++)
+            for (int i = 0; i < game.enemy_slots.Length; i++)
             {
                 var actor = Composite(
                     "Enemy " + i.ToString("00"),
@@ -145,51 +145,51 @@ namespace Zpd.Defense.Editor
                     1.05f,
                     9);
                 actor.gameObject.SetActive(false);
-                game.enemies[i] = new DefenseGame.EnemySlot
+                game.enemy_slots[i] = new DefenseGame.EnemySlot
                 {
-                    root = actor
+                    transform_root = actor
                 };
             }
 
             var bulletPool = new GameObject("Projectile Pool - 128 authored slots").transform;
             bulletPool.SetParent(root.transform);
-            game.bullets = new DefenseGame.BulletSlot[128];
+            game.player_bullet_slots = new DefenseGame.BulletSlot[128];
             var bulletSprite = Load("Extras/bullet.png")[0];
 
-            for (int i = 0; i < game.bullets.Length; i++)
+            for (int i = 0; i < game.player_bullet_slots.Length; i++)
             {
                 var bullet = WorldSprite("Bullet " + i.ToString("00"), bulletPool, bulletSprite, 0.14f, 20);
                 bullet.color = Hex("FFD077");
                 bullet.gameObject.SetActive(false);
-                game.bullets[i] = new DefenseGame.BulletSlot
+                game.player_bullet_slots[i] = new DefenseGame.BulletSlot
                 {
-                    root = bullet.transform
+                    transform_root = bullet.transform
                 };
             }
 
             var goldPool = new GameObject("Gold Pool - 96 authored piles").transform;
             goldPool.SetParent(root.transform, false);
-            game.supplies.drops = new DefenseSupplies.GoldSlot[96];
+            game.defense_supplies.gold_drop_slots = new DefenseSupplies.GoldSlot[96];
 
-            for (int i = 0; i < game.supplies.drops.Length; i++)
+            for (int i = 0; i < game.defense_supplies.gold_drop_slots.Length; i++)
             {
                 var coin = new GameObject("Gold " + i.ToString("00")).transform;
                 coin.SetParent(goldPool, false);
                 Block("Outline", coin, Vector2.zero, new Vector2(0.34f, 0.34f), Color.black, 3).transform.localRotation = Quaternion.Euler(0, 0, 45);
                 Block("Gold", coin, Vector2.zero, new Vector2(0.25f, 0.25f), Hex("FFC64B"), 4).transform.localRotation = Quaternion.Euler(0, 0, 45);
                 Block("Glint", coin, new Vector2(-0.04f, 0.04f), new Vector2(0.06f, 0.15f), Hex("FFF3AF"), 5);
-                game.supplies.drops[i] = new DefenseSupplies.GoldSlot
+                game.defense_supplies.gold_drop_slots[i] = new DefenseSupplies.GoldSlot
                 {
-                    root = coin
+                    transform_root = coin
                 };
                 coin.gameObject.SetActive(false);
             }
 
             var feedbackPool = new GameObject("Feedback Pool - 96 authored sparks").transform;
             feedbackPool.SetParent(root.transform, false);
-            game.feedbackParticles = new SpriteRenderer[96];
+            game.sprite_renderer_feedback_particles = new SpriteRenderer[96];
 
-            for (int i = 0; i < game.feedbackParticles.Length; i++)
+            for (int i = 0; i < game.sprite_renderer_feedback_particles.Length; i++)
             {
                 var spark = Block(
                     "Spark " + i.ToString("00"),
@@ -199,18 +199,18 @@ namespace Zpd.Defense.Editor
                     Color.white,
                     25);
                 spark.gameObject.SetActive(false);
-                game.feedbackParticles[i] = spark;
+                game.sprite_renderer_feedback_particles[i] = spark;
             }
 
             BuildGameplayActors(game);
             BuildUi(game);
             var events = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             events.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
-            events.GetComponent<EventSystem>().firstSelectedGameObject = game.startButton.gameObject;
+            events.GetComponent<EventSystem>().firstSelectedGameObject = game.btn_start.gameObject;
             var fit = camera.gameObject.AddComponent<DefenseCameraFit>();
-            fit.minimumHalfHeight = 7.2f;
-            fit.minimumHalfWidth = 12.8f;
-            fit.meadow = meadow;
+            fit.minimum_half_height = 7.2f;
+            fit.minimum_half_width = 12.8f;
+            fit.sprite_renderer_meadow = meadow;
             EditorSceneManager.SaveScene(
                 scene,
                 AssetDatabase.GenerateUniqueAssetPath("Assets/Scenes/SoloDefense.unity"));
@@ -235,27 +235,27 @@ namespace Zpd.Defense.Editor
             var root = Rect("Layout", canvas.transform, 0, 0, 1280, 720);
             var header = Panel("HUD", root, 0, 316, 1230, 70, "Card");
             header.GetComponent<Image>().raycastTarget = false;
-            game.healthText = Text("Health", header, "YOU 100 / 100     BEACON 100 / 100", -330, 0, 530, 40, 21);
-            game.waveText = Text("Score", header, "WAVE 1     KILLS 0", 136, 0, 360, 40, 23);
-            game.scoreText = Text("Timer", header, "0s / EXP: --", 442, 0, 220, 40, 19);
-            game.hintText = Text("Wave Status", root, "", 0, -315, 800, 38, 23, Color.white);
+            game.txt_health = Text("Health", header, "YOU 100 / 100     BEACON 100 / 100", -330, 0, 530, 40, 21);
+            game.txt_wave = Text("Score", header, "WAVE 1     KILLS 0", 136, 0, 360, 40, 23);
+            game.txt_score = Text("Timer", header, "0s / EXP: --", 442, 0, 220, 40, 19);
+            game.txt_hint = Text("Wave Status", root, "", 0, -315, 800, 38, 23, Color.white);
             var wallet = Panel("Supply Status", root, -401, 232, 460, 72, "Card");
             wallet.GetComponent<Image>().raycastTarget = false;
-            game.supplies.walletText = Text("Gold and Weapon", wallet, "GOLD 0 / PISTOL", 0, 0, 440, 60, 18);
+            game.defense_supplies.txt_wallet = Text("Gold and Weapon", wallet, "GOLD 0 / PISTOL", 0, 0, 440, 60, 18);
             BuildShop(game, root);
             BuildStatusBars(game, root);
-            game.readyPanel = Modal("Start Overlay", root, out var ready);
+            game.game_object_ready_panel = Modal("Start Overlay", root, out var ready);
             Text("Title", ready, "THE LAST SIGNAL", 0, 177, 700, 64, 43);
             Text("Subtitle", ready, "The Last Signal", 0, 108, 730, 48, 27);
-            game.startButton = Button("Start Defense", ready, "START DEFENSE", 0, -90, 370, 66, game.StartRun, "Battle");
+            game.btn_start = Button("Start Defense", ready, "START DEFENSE", 0, -90, 370, 66, game.StartRun, "Battle");
 
-            game.pausePanel = Modal("Pause Overlay", root, out var pause);
+            game.game_object_pause_panel = Modal("Pause Overlay", root, out var pause);
             Text("Title", pause, "PAUSED", 0, 110, 650, 64, 42);
-            game.resumeButton = Button("Resume", pause, "RESUME", 0, -75, 350, 64, game.Resume, "Battle");
-            game.helpButton = Button("Help", pause, "?", 310, 200, 72, 66, game.OpenHelp, "Button");
-            game.pausePanel.SetActive(false);
+            game.btn_resume = Button("Resume", pause, "RESUME", 0, -75, 350, 64, game.Resume, "Battle");
+            game.btn_help = Button("Help", pause, "?", 310, 200, 72, 66, game.OpenHelp, "Button");
+            game.game_object_pause_panel.SetActive(false);
 
-            game.helpPanel = Modal("Help Overlay", root, out var help);
+            game.game_object_help_panel = Modal("Help Overlay", root, out var help);
             Text("Title", help, "HOW TO PLAY", 0, 220, 700, 48, 30);
             var explanation = Text("Description", help, HelpCopy, 0, 15, 745, 350, 19);
             explanation.alignment = TextAnchor.UpperLeft;
@@ -268,15 +268,15 @@ namespace Zpd.Defense.Editor
                 745,
                 43,
                 12);
-            game.helpBackButton = Button("Back to Pause", help, "BACK", 0, -240, 280, 52, game.CloseHelp, "Button");
-            game.helpPanel.SetActive(false);
+            game.btn_help_back = Button("Back to Pause", help, "BACK", 0, -240, 280, 52, game.CloseHelp, "Button");
+            game.game_object_help_panel.SetActive(false);
 
-            game.resultPanel = Modal("Result Overlay", root, out var result);
-            game.resultStats = Text("Run Stats", result, "", 0, 177, 735, 98, 24);
-            game.View.rewardTitle = Text("Reward Status", result, "REWARD REQUEST FAILED", 0, 74, 735, 56, 28);
-            game.View.rewardDetail = Text("Reward Detail", result, "No experience was awarded.", 0, -3, 730, 80, 18);
-            game.View.uploadStatus = Text("Game Log Status", result, "GAME LOG: --", 0, -92, 735, 65, 17);
-            game.View.retryButton = Button(
+            game.game_object_result_panel = Modal("Result Overlay", root, out var result);
+            game.txt_result_stats = Text("Run Stats", result, "", 0, 177, 735, 98, 24);
+            game.View.txt_reward_title = Text("Reward Status", result, "REWARD REQUEST FAILED", 0, 74, 735, 56, 28);
+            game.View.txt_reward_detail = Text("Reward Detail", result, "No experience was awarded.", 0, -3, 730, 80, 18);
+            game.View.txt_upload_status = Text("Game Log Status", result, "GAME LOG: --", 0, -92, 735, 65, 17);
+            game.View.btn_retry = Button(
                 "Retry Reward",
                 result,
                 "RETRY FAILED REQUESTS",
@@ -286,24 +286,24 @@ namespace Zpd.Defense.Editor
                 62,
                 game.RetryRequests,
                 "Button");
-            game.restartButton = Button("New Run", result, "NEW RUN", 190, -178, 328, 62, game.StartRun, "Battle");
-            game.resultPanel.SetActive(false);
+            game.btn_restart = Button("New Run", result, "NEW RUN", 190, -178, 328, 62, game.StartRun, "Battle");
+            game.game_object_result_panel.SetActive(false);
             BuildNavigation(game);
         }
 
         private static void BuildShop(DefenseGame game, Transform root)
         {
             var shop = Panel("Upgrade Cards and Supplies", root, 0, -30, 920, 440, "Panel");
-            game.supplies.shopPanel = shop.gameObject;
-            game.supplies.shopTitle = Text("Countdown", shop, "CHOOSE ONE FREE UPGRADE", 0, 180, 840, 40, 26);
+            game.defense_supplies.game_object_shop_panel = shop.gameObject;
+            game.defense_supplies.txt_shop_title = Text("Countdown", shop, "CHOOSE ONE FREE UPGRADE", 0, 180, 840, 40, 26);
             Text("Card Hint", shop, "Time pauses until you choose. Upgrades last for this run.", 0, 142, 840, 30, 17);
-            game.supplies.cardButtons = new Button[3];
-            game.supplies.cardLabels = new Text[3];
+            game.defense_supplies.btn_upgrade_cards = new Button[3];
+            game.defense_supplies.txt_upgrade_cards = new Text[3];
             UnityAction[] choices =
             {
-                game.supplies.ChooseProjectiles,
-                game.supplies.ChooseDamage,
-                game.supplies.ChooseFireRate
+                game.defense_supplies.ChooseProjectiles,
+                game.defense_supplies.ChooseDamage,
+                game.defense_supplies.ChooseFireRate
             };
             var preview = new DefenseCombatStats();
 
@@ -319,12 +319,12 @@ namespace Zpd.Defense.Editor
                     172,
                     choices[i],
                     "Card");
-                game.supplies.cardButtons[i] = card;
-                game.supplies.cardLabels[i] = card.GetComponentInChildren<Text>();
-                game.supplies.cardLabels[i].fontSize = 19;
+                game.defense_supplies.btn_upgrade_cards[i] = card;
+                game.defense_supplies.txt_upgrade_cards[i] = card.GetComponentInChildren<Text>();
+                game.defense_supplies.txt_upgrade_cards[i].fontSize = 19;
             }
 
-            game.supplies.healButton = Button(
+            game.defense_supplies.btn_heal = Button(
                 "Heal",
                 shop,
                 "4  HEAL +35 / 15G",
@@ -332,11 +332,11 @@ namespace Zpd.Defense.Editor
                 -95,
                 400,
                 46,
-                game.supplies.BuyHeal,
+                game.defense_supplies.BuyHeal,
                 "Battle");
-            game.supplies.healLabel = game.supplies.healButton.GetComponentInChildren<Text>();
-            game.supplies.healLabel.fontSize = 18;
-            game.supplies.repairButton = Button(
+            game.defense_supplies.txt_heal = game.defense_supplies.btn_heal.GetComponentInChildren<Text>();
+            game.defense_supplies.txt_heal.fontSize = 18;
+            game.defense_supplies.btn_repair = Button(
                 "Repair Beacon",
                 shop,
                 "5  REPAIR +15 / 25G",
@@ -344,12 +344,12 @@ namespace Zpd.Defense.Editor
                 -95,
                 400,
                 46,
-                game.supplies.BuyRepair,
+                game.defense_supplies.BuyRepair,
                 "Battle");
-            game.supplies.repairLabel = game.supplies.repairButton.GetComponentInChildren<Text>();
-            game.supplies.repairLabel.fontSize = 17;
-            game.supplies.shopMessage = Text("Feedback", shop, "", 0, -137, 840, 28, 15);
-            game.nextWaveButton = Button(
+            game.defense_supplies.txt_repair = game.defense_supplies.btn_repair.GetComponentInChildren<Text>();
+            game.defense_supplies.txt_repair.fontSize = 17;
+            game.defense_supplies.txt_shop_message = Text("Feedback", shop, "", 0, -137, 840, 28, 15);
+            game.btn_next_wave = Button(
                 "Next Wave",
                 shop,
                 "NEXT WAVE  [ENTER]",
@@ -366,35 +366,35 @@ namespace Zpd.Defense.Editor
 
         private static void BuildGameplayActors(DefenseGame game)
         {
-            if (game.bullets.Length < 128)
+            if (game.player_bullet_slots.Length < 128)
             {
-                int oldCount = game.bullets.Length;
-                Array.Resize(ref game.bullets, 128);
+                int oldCount = game.player_bullet_slots.Length;
+                Array.Resize(ref game.player_bullet_slots, 128);
 
-                for (int i = oldCount; i < game.bullets.Length; i++)
+                for (int i = oldCount; i < game.player_bullet_slots.Length; i++)
                 {
                     var bullet = WorldSprite(
                         "Bullet " + i,
-                        game.bullets[0].root.parent,
+                        game.player_bullet_slots[0].transform_root.parent,
                         Load("Extras/bullet.png")[0],
                         0.14f,
                         20);
                     bullet.color = Hex("FFD077");
                     bullet.gameObject.SetActive(false);
-                    game.bullets[i] = new DefenseGame.BulletSlot
+                    game.player_bullet_slots[i] = new DefenseGame.BulletSlot
                     {
-                        root = bullet.transform
+                        transform_root = bullet.transform
                     };
                 }
             }
 
-            if (game.enemyBullets.Length == 0)
+            if (game.enemy_projectile_slots.Length == 0)
             {
                 var pool = new GameObject("Enemy Projectile Pool - 48 authored slots").transform;
                 pool.SetParent(game.transform, false);
-                game.enemyBullets = new DefenseEnemyProjectile[48];
+                game.enemy_projectile_slots = new DefenseEnemyProjectile[48];
 
-                for (int i = 0; i < game.enemyBullets.Length; i++)
+                for (int i = 0; i < game.enemy_projectile_slots.Length; i++)
                 {
                     var projectile = Block(
                         "Enemy Bolt " + i,
@@ -404,16 +404,16 @@ namespace Zpd.Defense.Editor
                         Hex("FF438A"),
                         24);
                     projectile.gameObject.SetActive(false);
-                    game.enemyBullets[i] = new DefenseEnemyProjectile
+                    game.enemy_projectile_slots[i] = new DefenseEnemyProjectile
                     {
-                        root = projectile.transform
+                        transform_root = projectile.transform
                     };
                 }
             }
 
-            if (game.entryMarkers.Length == 0)
+            if (game.sprite_renderer_entry_markers.Length == 0)
             {
-                game.entryMarkers = new SpriteRenderer[2];
+                game.sprite_renderer_entry_markers = new SpriteRenderer[2];
 
                 for (int i = 0; i < 2; i++)
                 {
@@ -426,78 +426,78 @@ namespace Zpd.Defense.Editor
                         6);
                     marker.transform.localRotation = Quaternion.Euler(0, 0, 45);
                     marker.gameObject.SetActive(false);
-                    game.entryMarkers[i] = marker;
+                    game.sprite_renderer_entry_markers[i] = marker;
                 }
             }
 
-            foreach (var enemy in game.enemies)
+            foreach (var enemy in game.enemy_slots)
             {
-                if (enemy.roleMarker == null)
+                if (enemy.sprite_renderer_role_marker == null)
                 {
-                    enemy.roleMarker = Block(
+                    enemy.sprite_renderer_role_marker = Block(
                         "Role Marker",
-                        enemy.root,
+                        enemy.transform_root,
                         new Vector2(0, 0.78f),
                         Vector2.one * 0.24f,
                         Color.white,
                         16);
                 }
 
-                if (enemy.attackMarker == null)
+                if (enemy.sprite_renderer_attack_marker == null)
                 {
-                    enemy.attackMarker = Block(
+                    enemy.sprite_renderer_attack_marker = Block(
                         "Attack Windup",
-                        enemy.root,
+                        enemy.transform_root,
                         new Vector2(0, -0.67f),
                         new Vector2(0.64f, 0.08f),
                         Color.red,
                         16);
                 }
 
-                if (enemy.healthBar == null)
+                if (enemy.sprite_renderer_health_bar == null)
                 {
-                    enemy.healthBar = Block(
+                    enemy.sprite_renderer_health_bar = Block(
                         "Enemy Health",
-                        enemy.root,
+                        enemy.transform_root,
                         new Vector2(0, 0.6f),
                         new Vector2(0.64f, 0.056f),
                         Color.green,
                         16);
                 }
 
-                if (enemy.aimMarker == null)
+                if (enemy.sprite_renderer_aim_marker == null)
                 {
-                    enemy.aimMarker = Block(
+                    enemy.sprite_renderer_aim_marker = Block(
                         "Ranged Aim Warning",
-                        enemy.root,
+                        enemy.transform_root,
                         Vector2.zero,
                         new Vector2(6.2f, 0.045f),
                         Hex("FF438A"),
                         5);
                 }
 
-                enemy.attackMarker.enabled = enemy.healthBar.enabled = enemy.aimMarker.enabled = false;
+                enemy.sprite_renderer_attack_marker.enabled = enemy.sprite_renderer_health_bar.enabled = enemy.sprite_renderer_aim_marker.enabled = false;
             }
         }
 
         private static void BuildStatusBars(DefenseGame game, Transform root)
         {
-            if (game.beaconHealthBar == null)
+            if (game.img_beacon_health_bar == null)
             {
-                game.beaconHealthBar = StatusBar("Beacon Health Bar", root, -330, 282, 480, 7, Hex("62D9B0"));
+                game.img_beacon_health_bar = StatusBar("Beacon Health Bar", root, -330, 282, 480, 7, Hex("62D9B0"));
             }
 
-            if (game.dashBar == null)
+            if (game.img_dash_bar == null)
             {
-                game.dashBar = StatusBar("Dash Cooldown", root, -500, -285, 180, 10, Hex("72E0FF"));
+                game.img_dash_bar = StatusBar("Dash Cooldown", root, -500, -285, 180, 10, Hex("72E0FF"));
             }
 
-            if (game.dashText == null)
+            if (game.txt_dash == null)
             {
-                game.dashText = Text("Dash Status", root, "DASH READY", -500, -310, 210, 28, 17, Color.white);
+                game.txt_dash = Text("Dash Status", root, "DASH READY", -500, -310, 210, 28, 17, Color.white);
             }
 
-            game.waveText.fontSize = 18;
+            game.txt_wave.fontSize = 18;
         }
 
         private static Image StatusBar(
@@ -510,10 +510,10 @@ namespace Zpd.Defense.Editor
             Color color)
         {
             var background = Rect(name + " Background", root, x, y, width, height).gameObject.AddComponent<Image>();
-            background.color = Ink;
+            background.color = color_color_ink;
             background.raycastTarget = false;
             var fill = Rect(name, background.transform, 0, 0, width, height).gameObject.AddComponent<Image>();
-            fill.sprite = solid;
+            fill.sprite = sprite_solid;
             fill.type = Image.Type.Filled;
             fill.fillMethod = Image.FillMethod.Horizontal;
             fill.fillOrigin = 0;
@@ -538,24 +538,24 @@ namespace Zpd.Defense.Editor
                 throw new InvalidOperationException("Open SoloDefense before upgrading.");
             }
 
-            ui = AssetDatabase.LoadAllAssetsAtPath("Assets/Resources/UI/Lobby/cartoon-ui-atlas.png").OfType<Sprite>().ToArray();
-            font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Resources/Fonts/NexonLv1/NEXONLv1GothicRegular.ttf");
+            sprite_ui_atlas = AssetDatabase.LoadAllAssetsAtPath("Assets/Resources/UI/Lobby/cartoon-ui-atlas.png").OfType<Sprite>().ToArray();
+            font_ui = AssetDatabase.LoadAssetAtPath<Font>("Assets/Resources/Fonts/NexonLv1/NEXONLv1GothicRegular.ttf");
             PrepareAssets();
             BuildBeaconVisual(game);
             BuildGameplayActors(game);
-            var layout = game.healthText.transform.parent.parent;
+            var layout = game.txt_health.transform.parent.parent;
 
-            if (game.supplies.cardButtons.Length != 3)
+            if (game.defense_supplies.btn_upgrade_cards.Length != 3)
             {
-                UnityEngine.Object.DestroyImmediate(game.supplies.shopPanel);
+                UnityEngine.Object.DestroyImmediate(game.defense_supplies.game_object_shop_panel);
                 BuildShop(game, layout);
             }
 
-            game.supplies.baseWeaponSprite = Load("Weapons/weaponR1.png")[0];
+            game.defense_supplies.sprite_base_weapon = Load("Weapons/weaponR1.png")[0];
             BuildStatusBars(game, layout);
             BuildNavigation(game);
 
-            foreach (var label in game.helpPanel.GetComponentsInChildren<Text>(true))
+            foreach (var label in game.game_object_help_panel.GetComponentsInChildren<Text>(true))
             {
                 if (label.name == "Description")
                 {
@@ -581,8 +581,8 @@ namespace Zpd.Defense.Editor
                 throw new InvalidOperationException("Open SoloDefense before adding return buttons.");
             }
 
-            ui = AssetDatabase.LoadAllAssetsAtPath("Assets/Resources/UI/Lobby/cartoon-ui-atlas.png").OfType<Sprite>().ToArray();
-            font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Resources/Fonts/NexonLv1/NEXONLv1GothicRegular.ttf");
+            sprite_ui_atlas = AssetDatabase.LoadAllAssetsAtPath("Assets/Resources/UI/Lobby/cartoon-ui-atlas.png").OfType<Sprite>().ToArray();
+            font_ui = AssetDatabase.LoadAssetAtPath<Font>("Assets/Resources/Fonts/NexonLv1/NEXONLv1GothicRegular.ttf");
             BuildNavigation(game);
             EditorSceneManager.MarkSceneDirty(game.gameObject.scene);
         }
@@ -591,9 +591,9 @@ namespace Zpd.Defense.Editor
         {
             foreach (var overlay in new[]
             {
-                game.readyPanel,
-                game.pausePanel,
-                game.resultPanel
+                game.game_object_ready_panel,
+                game.game_object_pause_panel,
+                game.game_object_result_panel
             }
 
             )
@@ -646,7 +646,7 @@ namespace Zpd.Defense.Editor
 
             )
             {
-                var child = game.beacon.Find(name);
+                var child = game.transform_beacon.Find(name);
 
                 if (child != null)
                 {
@@ -654,7 +654,7 @@ namespace Zpd.Defense.Editor
                 }
             }
 
-            WorldSprite("Defense Crystal", game.beacon, sprite, 2.4f, 1);
+            WorldSprite("Defense Crystal", game.transform_beacon, sprite, 2.4f, 1);
         }
 
         private static GameObject Modal(string name, Transform parent, out RectTransform panel)
@@ -677,7 +677,7 @@ namespace Zpd.Defense.Editor
         {
             var rect = Rect(name, parent, x, y, w, h);
             var image = rect.gameObject.AddComponent<Image>();
-            image.sprite = ui.Single(s => s.name == skin);
+            image.sprite = sprite_ui_atlas.Single(s => s.name == skin);
             image.type = Image.Type.Sliced;
             image.pixelsPerUnitMultiplier = 2.5f;
             return rect;
@@ -714,10 +714,10 @@ namespace Zpd.Defense.Editor
             Color? color = null)
         {
             var text = Rect(name, parent, x, y, w, h).gameObject.AddComponent<Text>();
-            text.font = font;
+            text.font = font_ui;
             text.fontSize = size;
             text.fontStyle = size >= 23 ? FontStyle.Bold : FontStyle.Normal;
-            text.color = color ?? Ink;
+            text.color = color ?? color_color_ink;
             text.text = value;
             text.alignment = TextAnchor.MiddleCenter;
             text.raycastTarget = false;
@@ -741,7 +741,7 @@ namespace Zpd.Defense.Editor
             var renderer = new GameObject(name, typeof(SpriteRenderer)).GetComponent<SpriteRenderer>();
             renderer.transform.SetParent(parent, false);
             renderer.sprite = sprite;
-            renderer.sharedMaterial = spriteMaterial;
+            renderer.sharedMaterial = material_sprite;
             renderer.sortingOrder = order;
             renderer.transform.localScale = Vector3.one * height / sprite.bounds.size.y;
             return renderer;
@@ -782,8 +782,8 @@ namespace Zpd.Defense.Editor
             Color color,
             int order)
         {
-            var renderer = WorldSprite(name, parent, solid, 1, order);
-            renderer.transform.localScale = new Vector3(size.x / solid.bounds.size.x, size.y / solid.bounds.size.y, 1);
+            var renderer = WorldSprite(name, parent, sprite_solid, 1, order);
+            renderer.transform.localScale = new Vector3(size.x / sprite_solid.bounds.size.x, size.y / sprite_solid.bounds.size.y, 1);
             renderer.transform.localPosition = position;
             renderer.color = color;
             return renderer;
@@ -810,11 +810,11 @@ namespace Zpd.Defense.Editor
             importer.spriteImportMode = SpriteImportMode.Single;
             importer.mipmapEnabled = false;
             importer.SaveAndReimport();
-            solid = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            sprite_solid = AssetDatabase.LoadAssetAtPath<Sprite>(path);
             const string materialPath = folder + "/DefenseUnlit.mat";
-            spriteMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            material_sprite = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
 
-            if (spriteMaterial == null)
+            if (material_sprite == null)
             {
                 var shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
 
@@ -823,8 +823,8 @@ namespace Zpd.Defense.Editor
                     throw new InvalidOperationException("URP 2D unlit shader missing.");
                 }
 
-                spriteMaterial = new Material(shader);
-                AssetDatabase.CreateAsset(spriteMaterial, materialPath);
+                material_sprite = new Material(shader);
+                AssetDatabase.CreateAsset(material_sprite, materialPath);
             }
         }
 

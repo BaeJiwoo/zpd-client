@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -8,23 +9,25 @@ namespace Zpd.Lobby
     [RequireComponent(typeof(RectTransform), typeof(CanvasGroup))]
     public sealed class LobbyPanel : MonoBehaviour
     {
-        public Vector2 hiddenOffset;
+        [FormerlySerializedAs("hiddenOffset")]
+        public Vector2 hidden_offset;
 
+        [FormerlySerializedAs("duration")]
         [Min(0.01f)]
-        public float duration = 0.25f;
-        private Coroutine transition;
-        private Vector2 home;
-        private bool initialized;
+        public float transition_duration_seconds = 0.25f;
+        private Coroutine coroutine_transition;
+        private Vector2 visible_anchored_position;
+        private bool is_initialized;
 
         private void Initialize()
         {
-            if (initialized)
+            if (is_initialized)
             {
                 return;
             }
 
-            home = ((RectTransform)transform).anchoredPosition;
-            initialized = true;
+            visible_anchored_position = ((RectTransform)transform).anchoredPosition;
+            is_initialized = true;
         }
 
         public void Show()
@@ -33,37 +36,37 @@ namespace Zpd.Lobby
             bool wasActive = gameObject.activeSelf;
             gameObject.SetActive(true);
 
-            if (transition != null)
+            if (coroutine_transition != null)
             {
-                StopCoroutine(transition);
+                StopCoroutine(coroutine_transition);
             }
 
             if (!wasActive)
             {
-                ((RectTransform)transform).anchoredPosition = home + hiddenOffset;
+                ((RectTransform)transform).anchoredPosition = visible_anchored_position + hidden_offset;
                 GetComponent<CanvasGroup>().alpha = 0;
             }
 
-            transition = StartCoroutine(Slide(true));
+            coroutine_transition = StartCoroutine(Slide(true));
         }
 
         public void Hide(bool animate = false)
         {
             Initialize();
 
-            if (transition != null)
+            if (coroutine_transition != null)
             {
-                StopCoroutine(transition);
+                StopCoroutine(coroutine_transition);
             }
 
             if (animate && gameObject.activeSelf)
             {
-                transition = StartCoroutine(Slide(false));
+                coroutine_transition = StartCoroutine(Slide(false));
                 return;
             }
 
-            transition = null;
-            ((RectTransform)transform).anchoredPosition = home;
+            coroutine_transition = null;
+            ((RectTransform)transform).anchoredPosition = visible_anchored_position;
             gameObject.SetActive(false);
         }
 
@@ -75,21 +78,21 @@ namespace Zpd.Lobby
             float alpha = group.alpha;
             group.interactable = false;
             group.blocksRaycasts = opening;
-            Vector2 to = opening ? home : home + hiddenOffset;
+            Vector2 to = opening ? visible_anchored_position : visible_anchored_position + hidden_offset;
 
-            for (float elapsed = 0; elapsed < duration; elapsed += Time.unscaledDeltaTime)
+            for (float elapsed = 0; elapsed < transition_duration_seconds; elapsed += Time.unscaledDeltaTime)
             {
-                float t = Mathf.Clamp01(elapsed / duration);
+                float t = Mathf.Clamp01(elapsed / transition_duration_seconds);
                 t = 1 - Mathf.Pow(1 - t, 3);
                 rect.anchoredPosition = Vector2.LerpUnclamped(from, to, t);
                 group.alpha = Mathf.Lerp(alpha, opening ? 1 : 0, t);
                 yield return null;
             }
 
-            rect.anchoredPosition = opening ? home : to;
+            rect.anchoredPosition = opening ? visible_anchored_position : to;
             group.alpha = opening ? 1 : 0;
             group.interactable = opening;
-            transition = null;
+            coroutine_transition = null;
 
             if (!opening)
             {
